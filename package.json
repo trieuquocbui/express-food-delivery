@@ -1,0 +1,22 @@
+{
+  "name": "food-delivery",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trieuquocbui/nodejs-food-delivery.git"
+  },
+  "author": "trieuquocbui",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/trieuquocbui/nodejs-food-delivery/issues"
+  },
+  "homepage": "https://github.com/trieuquocbui/nodejs-food-delivery#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
