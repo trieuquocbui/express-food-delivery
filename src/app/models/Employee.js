@@ -11,11 +11,6 @@ const EmployeeScheme = mongoose.Schema({
         require: true,
         unique: true
     },
-    phoneNumber: {
-        type: String,
-        require: true,
-        unique: true
-    },
     address: {
         type: String,
         require: true,

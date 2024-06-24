@@ -10,6 +10,11 @@ const AccountScheme = mongoose.Schema({
         type: String,
         require: true,
     },
+    phoneNumber: {
+        type: String,
+        require: true,
+        unique: true
+    },
     status: Number,
     roleId: {
         type: String,
