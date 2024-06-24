@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../../middlewares/auth.js');
 
-router.get('login', (req,res) =>{
-    res.send("login");
-});
+const AuthController = require('../../controllers/auth/AuthController.js')
 
-router.get('register', (req,res) => {
-    res.send("register");
-});
+router.post('/login', AuthController.onLogin);
 
-module.exports = router
+router.post('/register/customer', AuthController.onCustomerRegister);
+
+router.post('/register/employee', auth.verifyTokenAdmin, AuthController.onEmployeeRegister);
+
+module.exports = router;
