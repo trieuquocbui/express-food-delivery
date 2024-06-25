@@ -25,7 +25,7 @@ verifyToken = (req, res, next, role) => {
             };
             return next(err);
         }
-        
+
         if (decoded.role == role) {
             next();
         } else {
@@ -62,4 +62,25 @@ exports.generateToken = (payload) => {
         return null;
     }
 }
+
+exports.decoded = async (token) => {
+    try {
+        const decoded = await new Promise((resolve, reject) => {
+            jwt.verify(token, process.env.TOKEN_SECRET, (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({
+                        userId: data.userId,
+                        username: data.username,
+                    });
+                }
+            });
+        });
+        return decoded
+    } catch (error) {
+        console.error('Giải mã thất bại', error);
+        return null;
+    }
+};
 

@@ -11,7 +11,7 @@ const onLogin = (accountInfor, next) => {
     return new Promise((resolve, reject) => {
         let infor = null;
         Account.findOne({ username: accountInfor.username })
-            .then((account) => {
+            .then(async (account) => {
                 if (!account) {
                     const err = {
                         statusCode: 400,
@@ -21,7 +21,17 @@ const onLogin = (accountInfor, next) => {
                     return next(err);
                 }
 
+                let userId = null;
+                if (account.roleId == RoleConstant[2]) {
+                    let customer = await Customer.findOne({ accountId: account._id });
+                    userId = customer._id.toString();
+                } else {
+                    let employee = await Employee.findOne({ accountId: account._id });
+                    userId = employee._id.toString();
+                }
+
                 infor = {
+                    userId: userId,
                     username: accountInfor.username,
                     role: account.roleId
                 }
@@ -121,7 +131,7 @@ const onEmployeeRegister = (registerInfor, next) => {
 
 const onCustomerRegister = (account, next) => {
     return new Promise(async (resolve, reject) => {
-        try {    
+        try {
             let existingAccountByUsername = await Account.findOne({ username: account.username });
             if (existingAccountByUsername) {
                 let err = {
@@ -130,7 +140,7 @@ const onCustomerRegister = (account, next) => {
                 };
                 return next(err);
             }
-    
+
             let existingAccountByPhoneNumber = await Account.findOne({ phoneNumber: account.phoneNumber });
             if (existingAccountByPhoneNumber) {
                 let err = {
@@ -139,9 +149,9 @@ const onCustomerRegister = (account, next) => {
                 };
                 return next(err);
             }
-    
+
             let hashPassword = await bcrypt.hash(account.password, Number(process.env.SALTROUNDS));
-    
+
             let newAccount = new Account({
                 username: account.username,
                 password: hashPassword,
@@ -150,22 +160,22 @@ const onCustomerRegister = (account, next) => {
                 status: 1,
                 createdAt: new Date(),
             });
-    
+
             await newAccount.save();
-    
+
             let newCustomer = new Customer({
                 fullName: account.fullName,
                 accountId: newAccount._id
             });
-    
+
             await newCustomer.save();
-    
+
             let data = {
-                username : account.username,
+                username: account.username,
                 password: account.password
             };
             resolve(data);
-    
+
         } catch (error) {
             console.error(`Lỗi:`, error);
             let err = {
@@ -183,27 +193,27 @@ const getProfile = (username, next) => {
 
         try {
             let account = await Account.findOne({ username: username });
-    
+
             if (account) {
                 let infor = {
                     username: username,
                     phoneNumber: account.phoneNumber,
                     status: account.status,
                 };
-    
+
                 if (account.roleId == RoleConstant[2].id) {
-    
+
                     let customer = await Customer.findOne({ accountId: account._id });
-    
+
                     infor.fullName = customer.fullName;
-    
+
                 } else {
                     let employee = await Employee.findOne({ accountId: account._id });
                     infor.address = employee.address;
                     infor.fullName = employee.fullName;
                     infor.age = employee.age;
                     infor.gender = employee.gender
-                }                
+                }
                 resolve(infor);
             } else {
                 let err = {
@@ -242,28 +252,28 @@ const editProfile = (accountInfor, next) => {
                         return next(err);
                     } else {
                         await Account.updateOne({ username: accountInfor.username }, { phoneNumber: accountInfor.infor.phoneNumber });
-    
+
                         const updateAccount = await Account.findOne({ username: accountInfor.username });
-    
+
                         result.phoneNumber = updateAccount.phoneNumber;
                     }
                 }
-    
+
                 if (account.roleId == RoleConstant[2].id) {
-    
+
                     let accountId = account._id.toString();
-    
+
                     await Customer.updateOne({ accountId: accountId }, { fullName: accountInfor.infor.fullName });
-    
+
                     const updateCusotmer = await Customer.findOne({ accountId: accountId });
-    
+
                     result.fullName = updateCusotmer.fullName;
-    
+
                 } else {
                     // edit employee infor 
                 }
-    
-                
+
+
                 res.send(result);
             } else {
                 let err = {
@@ -273,7 +283,7 @@ const editProfile = (accountInfor, next) => {
                 }
                 return next(err);
             }
-    
+
         } catch (error) {
             console.log(`Lỗi xảy ra trong quá trình lấy thông tin ${error}`)
             let err = {
