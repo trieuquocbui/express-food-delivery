@@ -5,7 +5,7 @@ const CustomerScheme = mongoose.Schema({
         type: String,
         require: true,
     },
-    accountId: String
+    accountId: String,
 });
 
 module.exports = mongoose.model("customer", CustomerScheme);

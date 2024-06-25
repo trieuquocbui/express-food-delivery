@@ -25,6 +25,7 @@ verifyToken = (req, res, next, role) => {
             };
             return next(err);
         }
+        
         if (decoded.role == role) {
             next();
         } else {
@@ -35,7 +36,7 @@ verifyToken = (req, res, next, role) => {
             };
             return next(err);
         }
-    })
+    });
 }
 
 exports.verifyTokenAdmin = async (req, res, next) => {
