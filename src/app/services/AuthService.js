@@ -25,7 +25,6 @@ const onLogin = (accountInfor, next) => {
                 if (account.roleId === RoleConstant[2].id) {
                     let customer = await Customer.findOne({ accountId: account._id });
                     userId = customer._id.toString();
-                    console.log(userId)
                 } else {
                     let employee = await Employee.findOne({ accountId: account._id });
                     userId = employee._id.toString();
