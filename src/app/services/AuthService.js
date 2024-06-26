@@ -218,7 +218,7 @@ const getProfile = (username, next) => {
             } else {
                 let err = {
                     status: 500,
-                    code: Code.ENTIRY_EXIST,
+                    code: Code.ENTITY_NOT_EXIST,
                     message: "Không tìm thấy tài khoản",
                 }
                 return next(err);
@@ -278,7 +278,7 @@ const editProfile = (accountInfor, next) => {
             } else {
                 let err = {
                     status: 500,
-                    code: Code.ENTIRY_EXIST,
+                    code: Code.ENTITY_NOT_EXIST,
                     message: "Không tìm thấy tài khoản",
                 }
                 return next(err);
