@@ -10,6 +10,7 @@ const AccountScheme = mongoose.Schema({
         type: String,
         require: true,
     },
+    thumnail:String,
     phoneNumber: {
         type: String,
         require: true,
