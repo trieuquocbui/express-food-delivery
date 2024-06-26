@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const NotificationDetaillScheme = mongoose.Schema({
     notificationId: String,
-    employeeId: String,
+    accountId: String,
     status: Boolean
 });
 
