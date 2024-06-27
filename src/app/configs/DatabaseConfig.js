@@ -1,7 +1,8 @@
 require('dotenv').config();
 const RolesConstant = require('../constants/RoleConstant.js');
 const { AdminAccountConstant, AdminInforConstant } = require('../constants/AdminAccountConstant.js');
-const Employee = require('../models/Employee.js')
+const AccountStatus = require('../constants/AccountStatus.js');
+const User = require('../models/User.js')
 const Account = require('../models/Account.js')
 const Role = require('../models/Role.js');
 const mongoose = require('mongoose');
@@ -29,36 +30,35 @@ createAdminAccount = async (account, infor) => {
         let checkAccount = await Account.findOne({ username: account.username });
 
         if (!checkAccount) {
+
             let hashPassword = await bcrypt.hash(account.password, Number(process.env.SALTROUNDS));
 
             let newAccount = new Account({
                 username: account.username,
                 password: hashPassword,
-                phoneNumber: account.phoneNumber,
                 roleId: account.roleId,
-                status: account.status,
+                status: AccountStatus.ONLINE,
                 createdAt: new Date(),
             });
 
             await newAccount.save();
 
-            let newEmployee = new Employee({
-                ids: infor.ids,
+            let newEmployee = new User({
                 fullName: infor.fullName,
-                address: infor.address,
                 accountId: newAccount._id
             });
 
             await newEmployee.save();
+
         }
     } catch (error) {
-        console.error(`Lỗi:`, error);
+        console.error(`Lỗi xảy ra trong quá trình tạo tài khoản admin:`, error);
     }
 }
 
 mongoose
     .connect(process.env.MONGO_PROD_URI)
-    .then(() => console.log('Successfully connected to the database'))
+    .then(() => console.log('Kết nối database thành công'))
     .then(() => {
         createRoles(RolesConstant);
     })

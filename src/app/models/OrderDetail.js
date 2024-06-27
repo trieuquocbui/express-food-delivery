@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
 const OrderDetailScheme = mongoose.Schema({
-    productId: String,
+    productId: { type: String, ref: 'products' },
     quantity: Number,
     price: Number
 });
 
-module.exports = mongoose.model("order_detail", OrderDetailScheme);
+module.exports = OrderDetailScheme;

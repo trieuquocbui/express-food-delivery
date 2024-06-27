@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
 const NotificationDetaillScheme = mongoose.Schema({
-    notificationId: String,
-    accountId: String,
+    notificationId: { type: mongoose.Schema.Types.ObjectId, ref: 'orders' },
+    accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'accounts' },
     status: Boolean
 });
 

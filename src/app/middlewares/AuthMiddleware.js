@@ -25,7 +25,6 @@ verifyToken = (req, res, next, role) => {
             };
             return next(err);
         }
-
         if (decoded.role == role) {
             next();
         } else {
@@ -71,6 +70,7 @@ exports.decoded = async (token) => {
                     reject(err);
                 } else {
                     resolve({
+                        accountId: data.accountId,
                         userId: data.userId,
                         username: data.username,
                     });

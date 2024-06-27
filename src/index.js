@@ -6,8 +6,13 @@ const authRoute = require('./app/routes/auth/AuthRoute.js');
 const productManagementRoute = require('./app/routes/admin/ProductRoute.js');
 const categoryManagementRoute = require('./app/routes/admin/CategoryRoute.js');
 const publicRoute = require('./app/routes/public/PublicRoute.js');
-const CustomerOrderRoute = require('./app/routes/user/OrderRoute.js');
-const EmployeeOrderRoute = require('./app/routes/employee/OrderRoute.js');
+const customerOrderRoute = require('./app/routes/customer/OrderRoute.js');
+const employeeOrderRoute = require('./app/routes/employee/OrderRoute.js');
+const orderManagementRoute = require('./app/routes/admin/OrderRoute.js');
+const accountManagementRoute = require('./app/routes/admin/AccountRoute.js');
+const customerAccountRoute = require('./app/routes/customer/AccountRoute.js');
+const signmentOfAdminRoute = require('./app/routes/admin/AssignmenRoute.js');
+const signmentOfEmployeeRoute = require('./app/routes/employee/AssignmenRoute.js');
 
 const port = process.env.PORT;
 const hostname = process.env.HOST_NAME;
@@ -17,13 +22,23 @@ app.use(express.json());
 
 app.use('/api/v1/auth', authRoute);
 
+app.use('/api/v1/management/account', accountManagementRoute);
+
 app.use('/api/v1/management/category', categoryManagementRoute);
 
 app.use('/api/v1/management/product', productManagementRoute);
 
-app.use('/api/v1/:username/order', CustomerOrderRoute);
+app.use('/api/v1/management/order', orderManagementRoute);
 
-app.use('/api/v1/order', EmployeeOrderRoute);
+app.use('/api/v1/customer/account', customerAccountRoute);
+
+app.use('/api/v1/order', customerOrderRoute);
+
+app.use('/api/v1/admin/assignment', signmentOfAdminRoute);
+
+app.use('/api/v1/employee/assignment', signmentOfEmployeeRoute);
+
+app.use('/api/v1/employee/order', employeeOrderRoute);
 
 app.use('/api/v1/public', publicRoute);
 

@@ -31,7 +31,8 @@ const getProductList = async (req, res, next) => {
 const createProduct = async (req, res, next) => {
     const authorization = req.get("Authorization");
     const token = authorization.split(' ')[1];
-    let userId = await AuthMiddleware.decoded(token).userId;
+    let infor = await AuthMiddleware.decoded(token);
+    let userId = infor.userId;
     let file = req.file;
     const { data } = req.body;
     const jsonData = JSON.parse(data);
@@ -111,10 +112,10 @@ const addNewPrice = async (req, res, next) => {
     let productId = req.params.productId;
     const authorization = req.get("Authorization");
     const token = authorization.split(' ')[1];
-    let userId = await AuthMiddleware.decoded(token).userId;
+    let infor = await AuthMiddleware.decoded(token);
     let data = req.body;
     try {
-        let result = await ProductService.addNewPrice(productId, userId, data, next);
+        let result = await ProductService.addNewPrice(productId, infor.userId, data, next);
         let success = {
             code: Code.SUCCESS,
             message: "Thêm giá thành công",

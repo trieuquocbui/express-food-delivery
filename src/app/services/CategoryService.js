@@ -77,7 +77,7 @@ const addCategory = (file, data, next) => {
             let category = new Category({
                 _id: data.id,
                 name: data.name,
-                thumbnail: image.data._id.toString(),
+                thumbnail: image.data._id,
                 status: data.status,
             })
 
@@ -148,7 +148,7 @@ const editCategory = (categoryId, file, data, next) => {
             }
 
             if (Object.keys(image).length > 0) {
-                editCaterogy.thumbnail = image.data._id.toString();
+                editCaterogy.thumbnail = image.data._id;
             }
 
             await Category.updateOne({ _id: categoryId }, editCaterogy);

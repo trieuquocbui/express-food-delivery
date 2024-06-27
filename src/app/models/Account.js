@@ -10,12 +10,7 @@ const AccountScheme = mongoose.Schema({
         type: String,
         require: true,
     },
-    thumnail:String,
-    phoneNumber: {
-        type: String,
-        require: true,
-        unique: true
-    },
+    thumnail: String,
     status: Number,
     roleId: {
         type: String,
@@ -24,4 +19,4 @@ const AccountScheme = mongoose.Schema({
 })
 
 
-module.exports = mongoose.model("account", AccountScheme);
+module.exports = mongoose.model("accounts", AccountScheme);

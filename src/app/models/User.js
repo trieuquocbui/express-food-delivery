@@ -1,12 +1,11 @@
 const mongoose = require("mongoose")
 
-const EmployeeScheme = mongoose.Schema({
-    ids: {
+const UserScheme = mongoose.Schema({
+    fullName: {
         type: String,
         require: true,
-        unique: true
     },
-    fullName: {
+    phoneNumber: {
         type: String,
         require: true,
         unique: true
@@ -17,7 +16,10 @@ const EmployeeScheme = mongoose.Schema({
     },
     age: Number,
     gender: Boolean,
-    accountId:String
+    accountId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'accounts'
+    }
 })
 
-module.exports = mongoose.model("employee", EmployeeScheme);
+module.exports = mongoose.model("users", UserScheme);

@@ -3,6 +3,7 @@ const Product = require('../models/Product.js');
 const PriceDetail = require('../models/PriceDetail.js');
 const OrderDetail = require('../models/OrderDetail.js');
 const Code = require('../constants/CodeConstant.js');
+const Category = require('../models/Category.js');
 
 const getProductList = (inforQuery) => {
     return new Promise(async (resolve, reject) => {
@@ -28,7 +29,7 @@ const getProductList = (inforQuery) => {
                                     $expr: {
                                         $and: [
                                             { $eq: ['$productId', '$$productId'] },
-                                            { $lte: ['$appliedAt', currentDate] } // Thêm điều kiện để chỉ lấy giá nhỏ hơn hoặc bằng ngày hiện tại
+                                            { $lte: ['$appliedAt', currentDate] }
                                         ]
                                     }
                                 }
@@ -115,6 +116,15 @@ const createProduct = (file, data, userId, next) => {
                 return next(err);
             }
 
+            let checkCategory = await Category.findOne({ _id: data.categoryId });
+            if (!checkCategory) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Thể loại không tồn tại!",
+                }
+                return next(err);
+            }
+
             let image = await FileService.uploadImage(file);
 
             if (image.code != Code.SUCCESS) {
@@ -128,8 +138,8 @@ const createProduct = (file, data, userId, next) => {
             let newProduct = new Product({
                 _id: data.id,
                 name: data.name,
-                categoryId: data.categoryId,
-                thumbnail: image.data._id.toString(),
+                categoryId: checkCategory._id,
+                thumbnail: image.data._id,
                 description: data.description,
                 sold: 0,
                 quantity: data.quantity,
@@ -194,9 +204,18 @@ const editProduct = (productId, file, data, next) => {
                 return next(err);
             }
 
+            let checkCategory = await Category.findOne({ _id: data.categoryId });
+            if (!checkCategory) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Thể loại không tồn tại!",
+                }
+                return next(err);
+            }
+
             let editProduct = new Product({
                 name: data.name,
-                categoryId: data.categoryId,
+                categoryId: checkCategory._id,
                 description: data.description,
                 sold: 0,
                 quantity: data.quantity,
@@ -215,13 +234,13 @@ const editProduct = (productId, file, data, next) => {
                     return next(err);
                 }
 
-                editProduct.thumbnail = image.data._id.toString();
+                editProduct.thumbnail = image.data._id;
 
                 await FileService.deleteImage(checkProduct.thumbnail);
 
             }
 
-            let product = await Product.updateOne({ _id: productId }, editProduct);
+            await Product.updateOne({ _id: productId }, editProduct);
 
             checkProduct = await Product.findOne({ _id: productId });
 
@@ -238,10 +257,10 @@ const editProduct = (productId, file, data, next) => {
 
             resolve(productInfor);
         } catch (error) {
-            console.log(`Có lỗi xảy ra trong quá trình tạo sản phẩm: ${error}`);
+            console.log(`Có lỗi xảy ra trong quá trình chỉnh sữa sản phẩm: ${error}`);
             let err = {
                 code: Code.ERROR,
-                message: "Có lỗi xảy ra trong quá trình tạo sản phẩm"
+                message: "Có lỗi xảy ra trong quá trình chỉnh sữa sản phẩm"
             };
             reject(err);
         }

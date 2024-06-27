@@ -1,8 +1,10 @@
 const Order = require('../models/Order.js');
-const Customer = require('../models/Customer.js');
+const User = require('../models/User.js');
 const NotificationService = require('../services/NotificationService.js');
 const Code = require('../constants/CodeConstant.js');
 const Product = require('../models/Product.js');
+const Account = require('../models/Account.js');
+const RoleConstant = require('../constants/RoleConstant.js');
 
 const getOrderListOfCustomer = (customerId, inforQuery) => {
     return new Promise(async (resolve, reject) => {
@@ -36,15 +38,15 @@ const getOrderListOfCustomer = (customerId, inforQuery) => {
     })
 };
 
-const getOrderList = (inforQuery) => {
+const getOrderList = (inforQuery, status) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const orderList = await Order.find()
+            const orderList = await Order.find({ status: status })
                 .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
 
-            const total = await Order.countDocuments();
+            const total = await Order.countDocuments({ status: status });
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
@@ -71,7 +73,7 @@ const getOrderList = (inforQuery) => {
 const createOrder = (customerId, data, next) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let customer = await Customer.findOne({ _id: customerId });
+            let customer = await User.findOne({ _id: customerId });
 
             if (!customer) {
                 let err = {
@@ -92,7 +94,11 @@ const createOrder = (customerId, data, next) => {
 
             let newOrder = await order.save();
 
-            NotificationService.createNotification(newOrder._id.toString(), customer.fullName);
+            let notification = await NotificationService.createNotification(newOrder._id, customer.fullName);
+
+            let account = await Account.findOne({roleId: RoleConstant[0].id});
+
+            NotificationService.createNotificationDetails(notification, account);
 
             data.orderDetails.forEach(async element => {
                 let product = await Product.findOne({ _id: element.productId });
@@ -160,7 +166,7 @@ const deleteOrder = (orderId) => {
     })
 };
 
-const getOrder = (orderId) => {
+const getOrder = (orderId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
             let order = await Order.findOne({ _id: orderId });

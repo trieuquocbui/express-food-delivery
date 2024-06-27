@@ -1,4 +1,5 @@
 const AuthService = require('../../services/AuthService');
+const AccountService = require('../../services/AccountService.js');
 const Code = require('../../constants/CodeConstant.js');
 
 const onLogin = async (req, res, next) => {
@@ -19,44 +20,25 @@ const onLogin = async (req, res, next) => {
 
 }
 
-const onEmployeeRegister = async (req, res, next) => {
-    let registerInfor = {
-        account: req.body,
-        infor: req.body.infor
-    }
-
-    try {
-        let data = await AuthService.onEmployeeRegister(registerInfor, next);
-        res.send({
-            message: "Tạo tài khoản thành công!",
-            code: Code.SUCCESS,
-            data: data
-        });
-    } catch (error){
-        return next(error);
-    }
-    
-}
-
-const onCustomerRegister = async (req, res, next) => {
+const regisiterCustomer = async (req, res, next) => {
     let accountInfor = req.body;
-    try{
-        let data = await AuthService.onCustomerRegister(accountInfor, next);
+    try {
+        let data = await AccountService.registerCustomer(accountInfor, next);
         res.send({
             message: "Tạo tài khoản thành công!",
             code: Code.SUCCESS,
             data: data
         });
-    } catch (error){
+    } catch (error) {
         return next(error);
     }
-    
+
 }
 
 const getProfile = async (req, res, next) => {
     const username = req.params.username;
-    try{
-        let data = await AuthService.getProfile(username, next);
+    try {
+        let data = await AccountService.getProfile(username, next);
         let success = {
             message: "Lấy thành công profile",
             code: Code.SUCCESS,
@@ -66,16 +48,13 @@ const getProfile = async (req, res, next) => {
     } catch (error) {
         return next(error);
     }
-    
-
-    
 }
 
 const editProfile = async (req, res, next) => {
     let accountInfor = {
         username: req.params.username,
         infor: req.body
-    } 
+    }
     try {
         let data = AuthService.editProfile(accountInfor, next);
         let success = {
@@ -84,10 +63,10 @@ const editProfile = async (req, res, next) => {
             data: data
         };
         res.send(success)
-    } catch (error)  {
+    } catch (error) {
         return next(error);
     }
-    
+
 }
 
-module.exports = { onLogin, onEmployeeRegister, onCustomerRegister, getProfile, editProfile }
+module.exports = { onLogin, regisiterCustomer, getProfile, editProfile }

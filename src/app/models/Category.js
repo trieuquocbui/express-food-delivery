@@ -7,4 +7,4 @@ const CategoryScheme = mongoose.Schema({
     status: Boolean,
 });
 
-module.exports = mongoose.model("category", CategoryScheme);
+module.exports = mongoose.model("categories", CategoryScheme);

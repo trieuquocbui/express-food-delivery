@@ -1,11 +1,20 @@
 const mongoose = require("mongoose");
 
 const AssignmentScheme = mongoose.Schema({
-    adminId: String,
-    employeeId: String,
-    OrderId: String,
+    adminId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users'
+    },
+    employeeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users'
+    },
+    OrderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'orders'
+    },
     status: Number,
-    assignedAt: Date,
+    assignedAt: {type: Date, default: new Date},
 });
 
-module.exports = mongoose.model("assignment",AssignmentScheme);
+module.exports = mongoose.model("assignments",AssignmentScheme);

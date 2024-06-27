@@ -6,7 +6,10 @@ const ProductScheme = mongoose.Schema({
         type: String,
         require: true,
     },
-    categoryId: String,
+    categoryId: {
+        type: String,
+        ref: 'categories'
+    },
     thumbnail: String,
     description: String,
     sold: Number,
@@ -15,4 +18,4 @@ const ProductScheme = mongoose.Schema({
     featured: Boolean
 });
 
-module.exports = mongoose.model("product", ProductScheme);
+module.exports = mongoose.model("products", ProductScheme);
