@@ -1,14 +1,18 @@
 const express = require('express');
 const router = express.Router();
 
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 const AuthMiddleware = require('../../middlewares/AuthMiddleware.js');
 
 const AccountController = require('../../controllers/admin/AccountController.js');
 
-router.post('/register/employee', AuthMiddleware.verifyTokenAdmin, AccountController.registerEmployee);
+router.post('/register/employee', AuthMiddleware.verifyTokenAdmin, upload.single('image'), AccountController.registerEmployee);
 
 router.get('/list/:roleId', AuthMiddleware.verifyTokenAdmin, AccountController.getAccountList);
 
-router.delete('/account/:accountId', AuthMiddleware.verifyTokenAdmin, AccountController.deleteAccount);
+router.put('/:username', AuthMiddleware.verifyTokenAdmin, AccountController.changeAccountStatus);
 
 module.exports = router;

@@ -14,7 +14,7 @@ const UserScheme = mongoose.Schema({
         type: String,
         require: true,
     },
-    age: Number,
+    dob: Date,
     gender: Boolean,
     accountId: {
         type: mongoose.Schema.Types.ObjectId,

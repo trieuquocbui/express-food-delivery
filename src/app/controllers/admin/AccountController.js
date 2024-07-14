@@ -30,14 +30,27 @@ const getAccountList = async (req, res, next) => {
     }
 }
 
-const deleteAccount = async (req, res, next) => {
-
+const changeAccountStatus = async (req, res, next) => {
+    let username = req.params.username
+    let data = req.body
+    try {
+        let result = await AccountService.changeAccountStatus(username,data, next);
+        res.send({
+            message: "Chỉnh sửa tài khoản thành công!",
+            code: Code.SUCCESS,
+            data: result
+        });
+    } catch (error) {
+        return next(error);
+    }
 }
 
 const registerEmployee = async (req, res, next) => {
-    let registerInfor = req.body;
+    const { data } = req.body;
+    let registerInfor = JSON.parse(data);
+    let file = req.file;
     try {
-        let data = await AccountService.registerEmployee(registerInfor, next);
+        let data = await AccountService.registerEmployee(file ,registerInfor, next);
         res.send({
             message: "Tạo tài khoản thành công!",
             code: Code.SUCCESS,
@@ -46,8 +59,7 @@ const registerEmployee = async (req, res, next) => {
     } catch (error) {
         return next(error);
     }
-
 }
 
 
-module.exports = { deleteAccount, registerEmployee, getAccountList }
+module.exports = { changeAccountStatus, registerEmployee, getAccountList }

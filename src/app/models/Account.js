@@ -10,7 +10,7 @@ const AccountScheme = mongoose.Schema({
         type: String,
         require: true,
     },
-    thumnail: String,
+    thumbnail: String,
     status: Number,
     roleId: {
         type: String,

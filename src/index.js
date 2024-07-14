@@ -1,6 +1,7 @@
 require('dotenv').config();
 require('./app/configs/DatabaseConfig.js');
 const express = require('express');
+const cors = require('./app/configs/CorsConfig.js');
 
 const authRoute = require('./app/routes/auth/AuthRoute.js');
 const productManagementRoute = require('./app/routes/admin/ProductRoute.js');
@@ -17,6 +18,8 @@ const signmentOfEmployeeRoute = require('./app/routes/employee/AssignmenRoute.js
 const port = process.env.PORT;
 const hostname = process.env.HOST_NAME;
 const app = express();
+
+app.use(cors); 
 
 app.use(express.json());
 

@@ -18,8 +18,6 @@ const onLogin = (accountInfor, next) => {
                     };
                     return next(err);
                 }
-
-
                 if (account.status == 0) {
                     const err = {
                         statusCode: 400,
@@ -51,14 +49,13 @@ const onLogin = (accountInfor, next) => {
                 }
 
                 let payload = infor;
-                console.log(payload)
 
                 const token = authMethod.generateToken(payload);
 
                 resolve(token);
             })
             .catch((error) => {
-                console.error(`Lỗi:`, error);
+                console.error(`Lỗi trong quá trình xử lý:`, error);
                 let err = {
                     status: 500,
                     message: "Lỗi trong quá trình xử lý!",

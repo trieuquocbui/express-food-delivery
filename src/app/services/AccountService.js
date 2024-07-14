@@ -5,13 +5,14 @@ const User = require('../models/User.js');
 const Code = require('../constants/CodeConstant.js');
 const RoleConstant = require("../constants/RoleConstant.js");
 const AccountStatus = require('../constants/AccountStatus.js');
+const FileService = require('./FileService.js');
 
 const getAccountList = (inforQuery, roleId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
             const searchConditions = { roleId: roleId };
             if (inforQuery.searchQuery) {
-                searchConditions.$or = [
+                searchConditions.$and = [
                     { username: { $regex: inforQuery.searchQuery, $options: 'i' } },
                     { roleId: roleId }
                 ];
@@ -24,12 +25,12 @@ const getAccountList = (inforQuery, roleId, next) => {
                         from: 'users',
                         localField: '_id',
                         foreignField: 'accountId',
-                        as: 'infor_user'
+                        as: 'infor'
                     }
                 },
                 {
                     $unwind: {
-                        path: '$infor_user',
+                        path: '$infor',
                         preserveNullAndEmptyArrays: true
                     }
                 },
@@ -38,18 +39,16 @@ const getAccountList = (inforQuery, roleId, next) => {
                         _id: 1,
                         username: 1,
                         status: 1,
+                        thumbnail: 1,
                         createdAt: 1,
-                        infor_user: {
-                            $map: {
-                                input: ["$infor_user"],
-                                as: "user",
-                                in: {
-                                    _id: "$$user._id",
-                                    fullName: "$$user.fullName",
-                                    phoneNumber: "$$user.phoneNumber",
-                                    address: "$$user.address"
-                                }
-                            }
+                        infor: {
+                            _id: "$infor._id",
+                            fullName: "$infor.fullName",
+                            phoneNumber: "$infor.phoneNumber",
+                            address: "$infor.address",
+                            dob: "$infor.dob",
+                            age: "$infor.age",
+                            gender: "$infor.gender"
                         }
                     }
                 },
@@ -64,12 +63,12 @@ const getAccountList = (inforQuery, roleId, next) => {
                 }
             ])
 
-            const total = await Account.countDocuments({ roleId: roleId });
+            const total = await Account.countDocuments(searchConditions);
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
             let result = {
-                data: accountList,
+                content: accountList,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -88,7 +87,7 @@ const getAccountList = (inforQuery, roleId, next) => {
     })
 }
 
-const deleteAccount = (username, next) => {
+const changeAccountStatus = (username, data, next) => {
     return new Promise(async (resolve, reject) => {
         try {
             let account = await Account.findOne({ username: username });
@@ -97,16 +96,16 @@ const deleteAccount = (username, next) => {
                 const err = {
                     statusCode: 400,
                     message: "Không tìm thấy tài khoản!",
-                    code: Code.WRONG_PASSWORD,
+                    code: Code.ENTITY_NOT_EXIST,
                 };
                 return next(err);
             }
 
-            account.status = AccountStatus.CLOSE;
-
+            account.status = data.status;
+            
             account = await account.save();
 
-            resolve(account.username);
+            resolve({username: account.username, status: account.status});
 
         } catch (error) {
             console.error(`Lỗi xảy ra trong quá trình khóa tài khoản!`, error);
@@ -120,14 +119,14 @@ const deleteAccount = (username, next) => {
     })
 }
 
-const registerEmployee = (registerInfor, next) => {
+const registerEmployee = (file, registerInfor, next) => {
     return new Promise(async (resolve, reject) => {
         try {
             let existingAccountByUsername = await Account.findOne({ username: registerInfor.username });
             if (existingAccountByUsername) {
                 let err = {
                     message: "Tên tài khoản đã tồn tại!",
-                    code: Code.ENTIRY_EXIST
+                    code: Code.ERROR_Name_EXIST
                 };
                 return next(err);
             }
@@ -136,15 +135,26 @@ const registerEmployee = (registerInfor, next) => {
             if (existingPhoneNumber) {
                 let err = {
                     message: "Số điện thoại đã được sử dụng!",
-                    code: Code.ENTIRY_EXIST
+                    code: Code.ERROR_PHONE_EXIST
                 };
                 return next(err);
             }
 
             let hashPassword = await bcrypt.hash(registerInfor.password, Number(process.env.SALTROUNDS));
 
+            let image = await FileService.uploadImage(file);
+
+            if (image.code != Code.SUCCESS) {
+                let err = {
+                    code: image.code,
+                    message: image.message,
+                }
+                return next(err);
+            }
+
             let newAccount = new Account({
                 username: registerInfor.username,
+                thumbnail: image.data._id,
                 password: hashPassword,
                 roleId: RoleConstant[1].id,
                 status: AccountStatus.ONLINE,
@@ -157,6 +167,8 @@ const registerEmployee = (registerInfor, next) => {
                 phoneNumber: registerInfor.infor.phoneNumber,
                 fullName: registerInfor.infor.fullName,
                 address: registerInfor.infor.address,
+                gender: registerInfor.infor.gender,
+                dob: registerInfor.infor.dob,
                 accountId: newAccount._id
             });
 
@@ -192,8 +204,8 @@ const registerCustomer = (registerInfor, next) => {
                 return next(err);
             }
 
-            let existingAccountByPhoneNumber = await Account.findOne({ phoneNumber: registerInfor.infor.phoneNumber });
-            if (existingAccountByPhoneNumber) {
+            let existingUserByPhoneNumber = await User.findOne({ phoneNumber: registerInfor.infor.phoneNumber });
+            if (existingUserByPhoneNumber) {
                 let err = {
                     message: "Số điện thoại đã được sử dụng!",
                     code: Code.ENTIRY_EXIST
@@ -345,4 +357,4 @@ const editProfile = (accountId, accountInfor, next) => {
     })
 }
 
-module.exports = { getAccountList, deleteAccount, registerEmployee, registerCustomer, getProfile, editProfile }
+module.exports = { getAccountList, changeAccountStatus, registerEmployee, registerCustomer, getProfile, editProfile }
