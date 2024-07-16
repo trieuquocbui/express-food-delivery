@@ -46,7 +46,7 @@ const addCategory = async (req, res, next) => {
 }
 
 const editCategory = async (req, res, next) => {
-    const caterogyId = req.params.caterogyId;
+    const caterogyId = req.params.categoryId;
     let file = req.file;
     const { data } = req.body;
     const jsonData = JSON.parse(data);
@@ -64,9 +64,9 @@ const editCategory = async (req, res, next) => {
 }
 
 const deleteCategory = async (req, res, next) => {
-    const caterogyId = req.params.caterogyId;
+    const categoryId = req.params.categoryId;
     try {
-        let result = await CategoryService.deleteCategory(caterogyId, next);
+        let result = await CategoryService.deleteCategory(categoryId, next);
         let success = {
             code: Code.SUCCESS,
             message: "Xoá danh mục thành công",
@@ -79,10 +79,9 @@ const deleteCategory = async (req, res, next) => {
 }
 
 const getCategory = async(req, res, next) => {
-    const cateroryId = req.params.cateroryId;
-    console.log(cateroryId)
+    const categoryId = req.params.categoryId;
     try {
-        let result = await CategoryService.getCategory(cateroryId, next);
+        let result = await CategoryService.getCategory(categoryId, next);
         let success = {
             code: Code.SUCCESS,
             message: "lấy danh mục thành công",

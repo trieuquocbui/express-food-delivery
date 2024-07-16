@@ -23,17 +23,8 @@ const getCategoryList = (inforQuery) => {
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
-            let formattedCategoryList = categoryList.map(category => {
-                return {
-                    id: category._id,
-                    name: category.name,
-                    thumbnail: category.thumbnail,
-                    status: category.status,
-                };
-            });
-
             let result = {
-                content: formattedCategoryList,
+                content: categoryList,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -52,17 +43,9 @@ const getCategoryList = (inforQuery) => {
 }
 
 const addCategory = (file, data, next) => {
+    console.log(data)
     return new Promise(async (resolve, reject) => {
         try {
-            let checkId = await Category.findOne({ _id: data.id });
-            if (checkId) {
-                let err = {
-                    code: Code.ERROR_ID_EXIST,
-                    message: "Mã thể loại tồn tại!",
-                }
-                return next(err);
-            }
-
             let checkName = await Category.findOne({ name: data.name });
             if (checkName) {
                 let err = {
@@ -83,7 +66,6 @@ const addCategory = (file, data, next) => {
             }
 
             let category = new Category({
-                _id: data.id,
                 name: data.name,
                 thumbnail: image.data._id,
                 status: data.status,
@@ -91,13 +73,7 @@ const addCategory = (file, data, next) => {
 
             let newCategory = await category.save();
 
-            let categoryInfor = {
-                id: newCategory.id,
-                name: newCategory.name,
-                thumbnail: newCategory.thumbnail,
-                status: newCategory.status,
-            }
-            resolve(categoryInfor);
+            resolve(newCategory);
 
         } catch (error) {
             console.error(`Lỗi xảy ra trong quá trình tạo thể loại:`, error);
@@ -221,10 +197,10 @@ const deleteCategory = (categoryId, next) => {
     });
 }
 
-const getCategory = (cateroryId, next) => {
+const getCategory = (categoryId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let category = await Category.findOne({ _id: cateroryId });
+            let category = await Category.findOne({ _id: categoryId });
             if (!category) {
                 let err = {
                     code: Code.ENTITY_NOT_EXIST,
@@ -233,10 +209,7 @@ const getCategory = (cateroryId, next) => {
                 return next(err);
             }
 
-            resolve({id: category._id,
-                    name: category.name,
-                    thumbnail: category.thumbnail,
-                    status: category.status});
+            resolve(category);
 
         } catch (error) {
             console.log(`Có lỗi xảy ra trong quá trình xóa thể loại: ${error}`);
@@ -253,13 +226,7 @@ const getAll = ()=>{
     return new Promise(async (resolve, reject) => {
         try {
             let categoryList = await Category.find().select({ _id: 1, name: 1 });
-            let formattedCategoryList = categoryList.map(category => {
-                return {
-                    id: category._id,
-                    name: category.name,
-                };
-            });
-            resolve(formattedCategoryList);
+            resolve(categoryList);
 
         } catch (error) {
             console.log(`Có lỗi xảy ra trong quá trình lấy danh mục: ${error}`);

@@ -5,6 +5,7 @@ const Code = require('../constants/CodeConstant.js');
 const Product = require('../models/Product.js');
 const Account = require('../models/Account.js');
 const RoleConstant = require('../constants/RoleConstant.js');
+const OrderDetail = require('../models/OrderDetail.js');
 
 const getOrderListOfCustomer = (customerId, inforQuery) => {
     return new Promise(async (resolve, reject) => {
@@ -41,7 +42,18 @@ const getOrderListOfCustomer = (customerId, inforQuery) => {
 const getOrderList = (inforQuery, status) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const orderList = await Order.find({ status: status })
+            const query = { 
+                status: status
+            };
+    
+            if (inforQuery.startDate && inforQuery.endDate) {
+                query.createdAt = {
+                    $gte: new Date(inforQuery.startDate),
+                    $lte: new Date(inforQuery.endDate)
+                };
+            }
+
+            const orderList = await Order.find(query).populate('customerId')
                 .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
@@ -51,7 +63,7 @@ const getOrderList = (inforQuery, status) => {
             const isLastPage = inforQuery.page >= totalPages;
 
             let result = {
-                data: orderList,
+                content: orderList,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -89,7 +101,6 @@ const createOrder = (customerId, data, next) => {
                 status: 1,
                 address: data.address,
                 createdAt: new Date(),
-                orderDetails: data.orderDetails,
             });
 
             let newOrder = await order.save();
@@ -103,8 +114,16 @@ const createOrder = (customerId, data, next) => {
             data.orderDetails.forEach(async element => {
                 let product = await Product.findOne({ _id: element.productId });
                 product.quantity -= element.quantity;
+                product.sold += element.quantity;
+                await Product.updateOne({ _id: element.productId }, { quantity: product.quantity, sold: product.sold });
 
-                await Product.updateOne({ _id: element.productId }, { quantity: product.quantity });
+                let orderDetail = new OrderDetail({
+                    productId: element.productId,
+                    orderId: newOrder._id,
+                    quantity: element.quantity,
+                    price: element.price
+                })
+                await OrderDetail.save(orderDetail);
             });
 
             resolve(newOrder);

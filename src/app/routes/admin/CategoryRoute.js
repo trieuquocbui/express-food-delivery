@@ -18,8 +18,8 @@ route.put('/:categoryId/edit', AuthMiddleware.verifyTokenAdmin, upload.single('i
 
 route.get('/all', AuthMiddleware.verifyTokenAdmin, CategoryController.getAll);
 
-route.get('/:cateroryId', AuthMiddleware.verifyTokenAdmin, CategoryController.getCategory);
+route.get('/:categoryId', AuthMiddleware.verifyTokenAdmin, CategoryController.getCategory);
 
-route.delete('/:cateroryId/delete', AuthMiddleware.verifyTokenAdmin, CategoryController.deleteCategory);
+route.delete('/:categoryId/delete', AuthMiddleware.verifyTokenAdmin, CategoryController.deleteCategory);
 
 module.exports = route;

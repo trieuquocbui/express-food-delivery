@@ -8,14 +8,16 @@ const getOrderList = async (req, res, next) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
     let sortField = req.query.sortField || 'createdAt';
-    let sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
-    let searchQuery = req.query.search;
+    let sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    let startDate = req.query.startDate || undefined
+    let endDate = req.query.endDate || undefined
     let inforQuery = {
         page: page,
         limit: limit,
         sortField: sortField,
         sortOrder: sortOrder,
-        searchQuery: searchQuery
+        startDate: startDate,
+        endDate: endDate
     }
 
     try {
