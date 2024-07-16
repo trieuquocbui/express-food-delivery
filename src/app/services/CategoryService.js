@@ -9,12 +9,12 @@ const getCategoryList = (inforQuery) => {
         try {
             const searchConditions = {};
             if (inforQuery.searchQuery) {
-                searchConditions.$or = [
+                searchConditions.$and = [
                     { name: { $regex: inforQuery.searchQuery, $options: 'i' } },
                 ];
             }
 
-            const priceList = await Category.find(searchConditions)
+            const categoryList = await Category.find(searchConditions)
                 .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
@@ -23,8 +23,17 @@ const getCategoryList = (inforQuery) => {
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
+            let formattedCategoryList = categoryList.map(category => {
+                return {
+                    id: category._id,
+                    name: category.name,
+                    thumbnail: category.thumbnail,
+                    status: category.status,
+                };
+            });
+
             let result = {
-                data: priceList,
+                content: formattedCategoryList,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -45,11 +54,10 @@ const getCategoryList = (inforQuery) => {
 const addCategory = (file, data, next) => {
     return new Promise(async (resolve, reject) => {
         try {
-
             let checkId = await Category.findOne({ _id: data.id });
             if (checkId) {
                 let err = {
-                    code: Code.ENTIRY_EXIST,
+                    code: Code.ERROR_ID_EXIST,
                     message: "Mã thể loại tồn tại!",
                 }
                 return next(err);
@@ -58,7 +66,7 @@ const addCategory = (file, data, next) => {
             let checkName = await Category.findOne({ name: data.name });
             if (checkName) {
                 let err = {
-                    code: Code.ENTIRY_EXIST,
+                    code: Code.ERROR_Name_EXIST,
                     message: "Tên thể loại đã tồn tại!",
                 }
                 return next(err);
@@ -84,7 +92,7 @@ const addCategory = (file, data, next) => {
             let newCategory = await category.save();
 
             let categoryInfor = {
-                _id: newCategory.id,
+                id: newCategory.id,
                 name: newCategory.name,
                 thumbnail: newCategory.thumbnail,
                 status: newCategory.status,
@@ -119,7 +127,7 @@ const editCategory = (categoryId, file, data, next) => {
                 let checkName = await Category.findOne({ name: data.name });
                 if (checkName) {
                     let err = {
-                        code: Code.ENTIRY_EXIST,
+                        code: Code.ERROR_Name_EXIST,
                         message: "Tên thể loại đã tồn tại!",
                     }
                     return next(err);
@@ -181,8 +189,8 @@ const deleteCategory = (categoryId, next) => {
             let category = await Category.findOne({ _id: categoryId });
             if (!category) {
                 let err = {
-                    code: Code.ENTIRY_EXIST,
-                    message: "Mã thể loại tồn tại!",
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Danh mục không tồn tại!",
                 }
                 return next(err);
             }
@@ -213,4 +221,55 @@ const deleteCategory = (categoryId, next) => {
     });
 }
 
-module.exports = { getCategoryList, addCategory, editCategory, deleteCategory }
+const getCategory = (cateroryId, next) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let category = await Category.findOne({ _id: cateroryId });
+            if (!category) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Danh mục không tồn tại!",
+                }
+                return next(err);
+            }
+
+            resolve({id: category._id,
+                    name: category.name,
+                    thumbnail: category.thumbnail,
+                    status: category.status});
+
+        } catch (error) {
+            console.log(`Có lỗi xảy ra trong quá trình xóa thể loại: ${error}`);
+            let err = {
+                code: Code.ERROR,
+                message: "Có lỗi xảy ra trong quá trình xóa thể loại"
+            };
+            reject(err);
+        }
+    });
+}
+
+const getAll = ()=>{
+    return new Promise(async (resolve, reject) => {
+        try {
+            let categoryList = await Category.find().select({ _id: 1, name: 1 });
+            let formattedCategoryList = categoryList.map(category => {
+                return {
+                    id: category._id,
+                    name: category.name,
+                };
+            });
+            resolve(formattedCategoryList);
+
+        } catch (error) {
+            console.log(`Có lỗi xảy ra trong quá trình lấy danh mục: ${error}`);
+            let err = {
+                code: Code.ERROR,
+                message: "Có lỗi xảy ra trong quá trình lấy danh mục"
+            };
+            reject(err);
+        }
+    });
+}
+
+module.exports = { getCategoryList, addCategory, editCategory, deleteCategory, getCategory, getAll }

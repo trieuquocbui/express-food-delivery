@@ -16,11 +16,11 @@ const getCategoryList = async (req, res, next) => {
         searchQuery: searchQuery
     }
     try {
-        let data = await CategoryService.getCategoryList(inforQuery);
+        let result = await CategoryService.getCategoryList(inforQuery);
         let success = {
             code: Code.SUCCESS,
             message: "Lấy danh sách thể loại thành công",
-            data: data
+            data: result
         }
         res.send(success);
     } catch (error) {
@@ -36,7 +36,7 @@ const addCategory = async (req, res, next) => {
         let result = await CategoryService.addCategory(file, jsonData, next);
         let success = {
             code: Code.SUCCESS,
-            message: "Tạo thể loại thành công",
+            message: "Tạo danh mục thành công",
             data: result
         }
         res.send(success);
@@ -69,7 +69,7 @@ const deleteCategory = async (req, res, next) => {
         let result = await CategoryService.deleteCategory(caterogyId, next);
         let success = {
             code: Code.SUCCESS,
-            message: "Xoá thể loại thành công",
+            message: "Xoá danh mục thành công",
             data: result
         }
         res.send(success);
@@ -78,4 +78,34 @@ const deleteCategory = async (req, res, next) => {
     }
 }
 
-module.exports = { getCategoryList, addCategory, editCategory, deleteCategory }
+const getCategory = async(req, res, next) => {
+    const cateroryId = req.params.cateroryId;
+    console.log(cateroryId)
+    try {
+        let result = await CategoryService.getCategory(cateroryId, next);
+        let success = {
+            code: Code.SUCCESS,
+            message: "lấy danh mục thành công",
+            data: result
+        }
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getAll = async(req, res, next) => {
+    try {
+        let result = await CategoryService.getAll();
+        let success = {
+            code: Code.SUCCESS,
+            message: "lấy danh mục thành công",
+            data: result
+        }
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
+
+module.exports = { getCategoryList, addCategory, editCategory, deleteCategory, getCategory, getAll }

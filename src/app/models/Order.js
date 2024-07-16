@@ -7,7 +7,7 @@ const OrderScheme = mongoose.Schema({
     status: Number,
     address: String,
     createdAt: Date,
-    orderDetails: [OrderDetail]
+    orderDetails: [OrderDetail.schema]
 });
 
 module.exports = mongoose.model("orders", OrderScheme);

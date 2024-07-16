@@ -10,7 +10,7 @@ const getProductList = (inforQuery) => {
         try {
             const searchConditions = {};
             if (inforQuery.searchQuery) {
-                searchConditions.$or = [
+                searchConditions.$and = [
                     { name: { $regex: inforQuery.searchQuery, $options: 'i' } },
                 ];
             }
@@ -57,8 +57,8 @@ const getProductList = (inforQuery) => {
                         quantity: 1,
                         status: 1,
                         featured: 1,
-                        latestPrice: '$latestPriceDetail.newPrice',
-                        appliedAt: '$latestPriceDetail.appliedAt'
+                        price: '$latestPriceDetail.newPrice',
+                        appliedAt: '$latestPriceDetail.appliedAt',
                     }
                 },
                 {
@@ -76,8 +76,24 @@ const getProductList = (inforQuery) => {
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
+            let formatedProductList = productList.map(product => {
+                return {
+                    id: product._id,
+                    name: product.name,
+                    categoryId: product.categoryId,
+                    thumbnail: product.thumbnail,
+                    description: product.description,
+                    sold: product.sold,
+                    quantity: product.quantity,
+                    status: product.status,
+                    featured: product.featured,
+                    price: product.price,
+                    appliedAt: product.appliedAt
+                }
+            })
+
             let result = {
-                data: productList,
+                content: formatedProductList,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -101,17 +117,8 @@ const createProduct = (file, data, userId, next) => {
             let checkId = await Product.findOne({ _id: data.id });
             if (checkId) {
                 let err = {
-                    code: Code.ENTIRY_EXIST,
+                    code: Code.ERROR_ID_EXIST,
                     message: "Mã sản phẩm đã tồn tại!",
-                }
-                return next(err);
-            }
-
-            let checkName = await Product.findOne({ name: data.name });
-            if (checkName) {
-                let err = {
-                    code: Code.ENTIRY_EXIST,
-                    message: "Tên sản phẩm đã tồn tại!",
                 }
                 return next(err);
             }
@@ -191,15 +198,6 @@ const editProduct = (productId, file, data, next) => {
                 let err = {
                     code: Code.ENTITY_NOT_EXIST,
                     message: "Không tìm thấy sản phẩm",
-                }
-                return next(err);
-            }
-
-            let checkName = await Product.findOne({ name: data.name });
-            if (checkName) {
-                let err = {
-                    code: Code.ENTIRY_EXIST,
-                    message: "Tên sản phẩm đã tồn tại!",
                 }
                 return next(err);
             }
@@ -312,8 +310,24 @@ const deleteProduct = (productId, next) => {
 const getPriceListOfProduct = (productId, inforQuery) => {
     return new Promise(async (resolve, reject) => {
         try {
+            const query = { 
+                productId: productId
+            };
+    
+            if (inforQuery.startDate && inforQuery.endDate) {
+                query.appliedAt = {};
+                query.createdAt = {};
+                if (inforQuery.startDate) {
+                    query.appliedAt.$gt = new Date(inforQuery.startDate);
+                    query.createdAt.$gt = new Date(inforQuery.startDate);
+                }
+                if (inforQuery.endDate) {
+                    query.appliedAt.$lte = new Date(inforQuery.endDate);
+                    query.createdAt.$lte = new Date(inforQuery.endDate);
+                }
+            }
 
-            const priceList = await PriceDetail.find({ productId: productId })
+            const priceList = await PriceDetail.find(query)
                 .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
@@ -322,8 +336,19 @@ const getPriceListOfProduct = (productId, inforQuery) => {
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
+            let formatedPriceList = priceList.map( price => {
+                return {
+                    id: price.id,
+                    adminId: price.adminId,
+                    productId: price.productId,
+                    newPrice: price.newPrice,
+                    appliedAt: price.appliedAt,
+                    createdAt: price.createdAt,
+                }
+            })
+
             let result = {
-                data: priceList,
+                content: formatedPriceList,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -356,14 +381,22 @@ const addNewPrice = (productId, userId, data, next) => {
             let priceDetail = new PriceDetail({
                 adminId: userId,
                 productId: productId,
-                newPrice: data.price,
-                appliedAt: data.applied,
+                newPrice: data.newPrice,
+                appliedAt: data.appliedAt,
                 createdAt: new Date(),
             })
 
-            let newPriceDetail = priceDetail.save();
+            let newPriceDetail = await priceDetail.save();
 
-            resolve(newPriceDetail);
+            let formatedPrice = {
+                adminId: newPriceDetail.adminId,
+                productId: newPriceDetail.productId,
+                newPrice: newPriceDetail.newPrice,
+                appliedAt: newPriceDetail.appliedAt,
+                createdAt: newPriceDetail.createdAt,
+                id: newPriceDetail._id
+            }
+            resolve(formatedPrice);
 
         } catch (error) {
             console.log(`Có lỗi xảy ra trong quá trình tạo giá cho sản phẩm: ${error}`);
@@ -425,10 +458,11 @@ const getProduct = (productId, next) => {
                 .sort({ appliedAt: -1 }).limit(1);
 
             let productInfor = {
-                _id: product.id,
+                id: product.id,
                 name: product.name,
                 thumbnail: product.thumbnail,
                 description: product.description,
+                categoryId: product.categoryId,
                 sold: product.sold,
                 quantity: product.quantity,
                 status: product.status,

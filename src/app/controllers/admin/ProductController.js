@@ -88,12 +88,16 @@ const getPriceListOfProduct = async (req, res, next) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
     let sortField = req.query.sortField || 'appliedAt';
-    let sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+    let sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    let startDate = req.query.startDate || undefined
+    let endDate = req.query.endDate || undefined
     let inforQuery = {
         page: page,
         limit: limit,
         sortField: sortField,
-        sortOrder: sortOrder
+        sortOrder: sortOrder,
+        startDate: startDate,
+        endDate: endDate
     }
     try {
         let data = await ProductService.getPriceListOfProduct(productId, inforQuery, next);
@@ -142,6 +146,21 @@ const deleteNewPrice = async (req, res, next) => {
     }
 }
 
+const getProduct = async (req, res, next) => {
+    let productId = req.params.productId;
+    try {
+        let result = await ProductService.getProduct(productId, next);
+        let success = {
+            code: Code.SUCCESS,
+            message: "Lấy sản phẩm thành công",
+            data: result
+        };
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
 
 
-module.exports = { getProductList, createProduct, deleteProduct, editProduct, addNewPrice, deleteNewPrice, getPriceListOfProduct };
+
+module.exports = { getProductList, createProduct, deleteProduct, editProduct, addNewPrice, deleteNewPrice, getPriceListOfProduct, getProduct };

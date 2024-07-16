@@ -14,8 +14,12 @@ route.get('/list', AuthMiddleware.verifyTokenAdmin, CategoryController.getCatego
 
 route.post('/add', AuthMiddleware.verifyTokenAdmin, upload.single('image'), CategoryController.addCategory);
 
-route.put('/:caterogyId/edit', AuthMiddleware.verifyTokenAdmin, upload.single('image'), CategoryController.editCategory);
+route.put('/:categoryId/edit', AuthMiddleware.verifyTokenAdmin, upload.single('image'), CategoryController.editCategory);
 
-route.delete('/:caterogyId/delete', AuthMiddleware.verifyTokenAdmin, CategoryController.deleteCategory);
+route.get('/all', AuthMiddleware.verifyTokenAdmin, CategoryController.getAll);
+
+route.get('/:cateroryId', AuthMiddleware.verifyTokenAdmin, CategoryController.getCategory);
+
+route.delete('/:cateroryId/delete', AuthMiddleware.verifyTokenAdmin, CategoryController.deleteCategory);
 
 module.exports = route;
