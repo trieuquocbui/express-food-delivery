@@ -6,6 +6,4 @@ const OrderDetailScheme = mongoose.Schema({
     price: Number
 });
 
-const OrderDetail = mongoose.model('OrderDetail', OrderDetailScheme);
-
-module.exports = OrderDetail;
+module.exports = OrderDetailScheme;

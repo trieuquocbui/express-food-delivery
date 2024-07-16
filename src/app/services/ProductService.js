@@ -1,9 +1,9 @@
 const FileService = require('./FileService.js');
 const Product = require('../models/Product.js');
 const PriceDetail = require('../models/PriceDetail.js');
-const OrderDetail = require('../models/OrderDetail.js');
 const Code = require('../constants/CodeConstant.js');
 const Category = require('../models/Category.js');
+const Order = require('../models/Order.js');
 
 const getProductList = (inforQuery) => {
     return new Promise(async (resolve, reject) => {
@@ -278,12 +278,11 @@ const deleteProduct = (productId, next) => {
                 return next(err);
             }
 
-            let count = await OrderDetail.countDocuments({ productId: productId }).count();
-
-            if (count > 0) {
+            const orders = await Order.find({ 'orderDetails.productId': productId });
+            if (orders.length > 0) {
                 let err = {
                     code: Code.ERROR,
-                    message: "Không thể xóa sản phẩm"
+                    message: "Không thể xóa sản phẩm vì nó có trong đơn hàng"
                 }
                 return next(err);
             }
