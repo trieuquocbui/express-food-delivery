@@ -287,11 +287,11 @@ const deleteProduct = (productId, next) => {
                 return next(err);
             }
 
+            await Product.deleteOne({ _id: productId });
+
             await FileService.deleteImage(product.thumbnail);
 
             await PriceDetail.deleteMany({ productId: productId });
-
-            await Product.deleteOne({ _id: productId });
 
             resolve(productId);
 
