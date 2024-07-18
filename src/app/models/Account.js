@@ -12,9 +12,8 @@ const AccountScheme = mongoose.Schema({
     },
     thumbnail: String,
     status: Number,
-    roleId: {
-        type: String,
-    },
+    role: { type: mongoose.Schema.Types.ObjectId, ref: 'roles' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
     createdAt: { type: Date, default: Date.now }
 })
 

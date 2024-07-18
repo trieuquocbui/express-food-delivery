@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 
 const Rolechema = new mongoose.Schema({
-    _id: String,
     name: {
         type: String,
         required: true,
@@ -9,4 +8,4 @@ const Rolechema = new mongoose.Schema({
     },
 });
 
-module.exports = mongoose.model("role", Rolechema);
+module.exports = mongoose.model("roles", Rolechema);

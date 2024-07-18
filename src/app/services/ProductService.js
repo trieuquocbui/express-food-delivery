@@ -4,6 +4,7 @@ const PriceDetail = require('../models/PriceDetail.js');
 const Code = require('../constants/CodeConstant.js');
 const Category = require('../models/Category.js');
 const Order = require('../models/Order.js');
+const User = require('../models/User.js')
 
 const getProductList = (inforQuery) => {
     return new Promise(async (resolve, reject) => {
@@ -22,13 +23,13 @@ const getProductList = (inforQuery) => {
                 {
                     $lookup: {
                         from: 'price_details',
-                        let: { productId: '$_id' },
+                        let: { product: '$_id' },
                         pipeline: [
                             {
                                 $match: {
                                     $expr: {
                                         $and: [
-                                            { $eq: ['$productId', '$$productId'] },
+                                            { $eq: ['$product', '$$product'] },
                                             { $lte: ['$appliedAt', currentDate] }
                                         ]
                                     }
@@ -47,10 +48,18 @@ const getProductList = (inforQuery) => {
                     }
                 },
                 {
+                    $lookup: {
+                        from: 'categories',
+                        localField: 'category',
+                        foreignField: '_id',
+                        as: 'category'
+                    }
+                },
+                {
                     $project: {
                         _id: 1,
                         name: 1,
-                        categoryId: 1,
+                        category: { _id: 1, name: 1 },
                         thumbnail: 1,
                         description: 1,
                         sold: 1,
@@ -99,7 +108,7 @@ const createProduct = (file, data, userId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
 
-            let checkCategory = await Category.findOne({ _id: data.categoryId });
+            let checkCategory = await Category.findOne({ _id: data.category });
             if (!checkCategory) {
                 let err = {
                     code: Code.ENTITY_NOT_EXIST,
@@ -120,7 +129,7 @@ const createProduct = (file, data, userId, next) => {
 
             let newProduct = new Product({
                 name: data.name,
-                categoryId: checkCategory._id,
+                category: checkCategory,
                 thumbnail: image.data._id,
                 description: data.description,
                 sold: 0,
@@ -131,9 +140,19 @@ const createProduct = (file, data, userId, next) => {
 
             let product = await newProduct.save();
 
+            let user = await User.findOne({ _id: userId})
+
+            if (!user) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Người dùng không tồn tại!",
+                }
+                return next(err);
+            }
+
             let newPriceDetail = new PriceDetail({
-                adminId: userId,
-                productId: product._id,
+                product: product,
+                admin: user,
                 newPrice: data.price,
                 appliedAt: new Date(),
                 createdAt: new Date(),
@@ -150,7 +169,7 @@ const createProduct = (file, data, userId, next) => {
                 quantity: newProduct.quantity,
                 status: newProduct.status,
                 featured: newProduct.featured,
-                price: priceDetail.price
+                price: priceDetail.newPrice
             }
 
             resolve(productInfor);
@@ -177,7 +196,7 @@ const editProduct = (productId, file, data, next) => {
                 return next(err);
             }
 
-            let checkCategory = await Category.findOne({ _id: data.categoryId });
+            let checkCategory = await Category.findOne({ _id: data.category._id });
             if (!checkCategory) {
                 let err = {
                     code: Code.ENTITY_NOT_EXIST,
@@ -188,7 +207,7 @@ const editProduct = (productId, file, data, next) => {
 
             let editProduct = {
                 name: data.name,
-                categoryId: checkCategory._id,
+                category: checkCategory,
                 description: data.description,
                 sold: 0,
                 quantity: data.quantity,
@@ -283,8 +302,10 @@ const deleteProduct = (productId, next) => {
 const getPriceListOfProduct = (productId, inforQuery) => {
     return new Promise(async (resolve, reject) => {
         try {
+            let product = await Product.findOne({_id: productId})
+
             const query = { 
-                productId: productId
+                product: product
             };
     
             if (inforQuery.startDate && inforQuery.endDate) {
@@ -305,7 +326,7 @@ const getPriceListOfProduct = (productId, inforQuery) => {
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
 
-            const total = await PriceDetail.countDocuments({ productId: productId });
+            const total = await PriceDetail.countDocuments({ product: product });
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
@@ -340,9 +361,18 @@ const addNewPrice = (productId, userId, data, next) => {
                 return next(err);
             }
 
+            let user = await User.findOne({_id: userId});
+            if (!user) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Không tìm thấy người dùng"
+                }
+                return next(err);
+            }
+
             let priceDetail = new PriceDetail({
-                adminId: userId,
-                productId: productId,
+                admin: user,
+                product: product,
                 newPrice: data.newPrice,
                 appliedAt: data.appliedAt,
                 createdAt: new Date(),
@@ -399,7 +429,7 @@ const delelteNewPrice = (priceId, next) => {
 const getProduct = (productId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let product = await Product.findOne({ _id: productId });
+            let product = await Product.findOne({ _id: productId }).populate('category');
             if (!product) {
                 let err = {
                     code: Code.ENTITY_NOT_EXIST,
@@ -408,7 +438,7 @@ const getProduct = (productId, next) => {
                 return next(err);
             }
 
-            let priceDetail = await PriceDetail.find({ productId: productId, appliedAt: { $lte: new Date() } })
+            let priceDetail = await PriceDetail.findOne({ product: product, appliedAt: { $lte: new Date() } })
                 .sort({ appliedAt: -1 }).limit(1);
 
             let productInfor = {
@@ -416,12 +446,12 @@ const getProduct = (productId, next) => {
                 name: product.name,
                 thumbnail: product.thumbnail,
                 description: product.description,
-                categoryId: product.categoryId,
+                category: product.category,
                 sold: product.sold,
                 quantity: product.quantity,
                 status: product.status,
                 featured: product.featured,
-                price: priceDetail[0].newPrice
+                price: priceDetail.newPrice
             }
             resolve(productInfor);
 

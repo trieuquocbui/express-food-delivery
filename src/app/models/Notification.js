@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const NotificationScheme = mongoose.Schema({
-    orderId:{ type: mongoose.Schema.Types.ObjectId, ref: 'order' },
+    order:{ type: mongoose.Schema.Types.ObjectId, ref: 'order' },
     message:String,
     createdAt:Date,
 });

@@ -10,11 +10,10 @@ const bcrypt = require('bcrypt');
 
 createRoles = async (values) => {
     for (let val of values) {
-        let isRole = await Role.findOne({ _id: val.id });
+        let isRole = await Role.findOne({ name: val });
         if (!isRole) {
             let newRole = new Role({
-                _id: val.id,
-                name: val.name,
+                name: val,
             });
             try {
                 await newRole.save();
@@ -33,23 +32,24 @@ createAdminAccount = async (account, infor) => {
 
             let hashPassword = await bcrypt.hash(account.password, Number(process.env.SALTROUNDS));
 
+            let role = await Role.findOne({ name: account.roleName})
+
+            let newEmployee = new User({
+                fullName: infor.fullName,
+            });
+
+            let user = await newEmployee.save();
+
             let newAccount = new Account({
                 username: account.username,
                 password: hashPassword,
-                roleId: account.roleId,
+                role: role,
                 status: AccountStatus.ONLINE,
+                user: user,
                 createdAt: new Date(),
             });
 
             await newAccount.save();
-
-            let newEmployee = new User({
-                fullName: infor.fullName,
-                accountId: newAccount._id
-            });
-
-            await newEmployee.save();
-
         }
     } catch (error) {
         console.error(`Lỗi xảy ra trong quá trình tạo tài khoản admin:`, error);

@@ -39,15 +39,15 @@ verifyToken = (req, res, next, role) => {
 }
 
 exports.verifyTokenAdmin = async (req, res, next) => {
-    verifyToken(req, res, next, RolesConstant[0].id)
+    verifyToken(req, res, next, RolesConstant[0])
 }
 
 exports.verifyTokenEmployee = async (req, res, next) => {
-    verifyToken(req, res, next, RolesConstant[1].id)
+    verifyToken(req, res, next, RolesConstant[1])
 }
 
 exports.verifyTokenCustomer = async (req, res, next) => {
-    verifyToken(req, res, next, RolesConstant[2].id)
+    verifyToken(req, res, next, RolesConstant[2])
 }
 
 exports.generateToken = (payload) => {

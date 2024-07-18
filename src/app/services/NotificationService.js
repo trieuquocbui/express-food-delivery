@@ -1,12 +1,15 @@
+const { request } = require('express');
 const Notification = require('../models/Notification.js');
 const NotificationDetail = require('../models/NotificationDetail.js');
+const Code = require('../constants/CodeConstant.js');
 
-const createNotification = (orderId ,fullName) => {
+
+const createNotification = (order ,fullName) => {
     return new Promise( async (resovle, reject) => {
         try {
-            let message = `Có đơn đặt hàng ${orderId} từ khách hàng ${fullName}`;
+            let message = `Có đơn đặt hàng ${order._id} từ khách hàng ${fullName}`;
             let notification = await new Notification({
-                orderId: orderId,
+                order: order,
                 message: message,
                 createdAt: new Date()
             }).save();
@@ -25,12 +28,12 @@ const createNotification = (orderId ,fullName) => {
     })
 };
 
-const createNotificationDetails = (notificationId, accountId) => {
+const createNotificationDetails = (notification, account) => {
     return new Promise( async (resovle, reject) => {
         try {
             let notificationDetail = await new NotificationDetail({
-                notificationId: notificationId,
-                accountId: accountId,
+                notification: notification,
+                account: account,
                 status: false
             }).save();
 

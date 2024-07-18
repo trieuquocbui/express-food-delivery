@@ -4,6 +4,7 @@ const NotificationService = require('../services/NotificationService.js');
 const Code = require('../constants/CodeConstant.js');
 const Product = require('../models/Product.js');
 const Account = require('../models/Account.js');
+const Role = require('../models/Role.js');
 const RoleConstant = require('../constants/RoleConstant.js');
 const OrderDetail = require('../models/OrderDetail.js');
 
@@ -53,7 +54,9 @@ const getOrderList = (inforQuery, status) => {
                 };
             }
 
-            const orderList = await Order.find(query).populate('customerId')
+            const orderList = await Order.find(query).populate('customer').populate({path: 'orderDetails', populate: {
+                path: 'product'
+            }})
                 .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
@@ -95,36 +98,56 @@ const createOrder = (customerId, data, next) => {
                 return next(err);
             }
 
+            const orderDetailIds = await Promise.all(data.orderDetails.map(async detail => {
+                let product = await Product.findOne({_id: detail.productId})
+                product.quantity -= detail.quantity;
+                product.sold += detail.quantity;
+                await Product.updateOne({ _id: detail.productId }, { quantity: product.quantity, sold: product.sold });
+
+                const newDetail = new OrderDetail({
+                    product: product,
+                    quantity: detail.quantity,
+                    price: detail.price
+                });
+                return savedDetail = await newDetail.save();
+            }));
+
             let order = new Order({
-                customerId: customerId,
+                customer: customer,
                 totalAmount: data.totalAmount,
                 status: 1,
                 address: data.address,
                 createdAt: new Date(),
+                orderDetails: orderDetailIds
             });
 
             let newOrder = await order.save();
 
-            let notification = await NotificationService.createNotification(newOrder._id, customer.fullName);
+            let notification = await NotificationService.createNotification(newOrder, customer.fullName);
 
-            let account = await Account.findOne({roleId: RoleConstant[0].id});
+            let role = await Role.findOne({name: RoleConstant[0]})
+
+            if (!role) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Chúc vụ không tồn tại",
+                }
+                return next(err);
+            }
+
+            let account = await Account.findOne({role: role});
+
+            if (!account) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Tài khoản không tồn tại!",
+                }
+                return next(err);
+            }
+
+            console.log(account)
 
             NotificationService.createNotificationDetails(notification, account);
-
-            data.orderDetails.forEach(async element => {
-                let product = await Product.findOne({ _id: element.productId });
-                product.quantity -= element.quantity;
-                product.sold += element.quantity;
-                await Product.updateOne({ _id: element.productId }, { quantity: product.quantity, sold: product.sold });
-
-                let orderDetail = new OrderDetail({
-                    productId: element.productId,
-                    orderId: newOrder._id,
-                    quantity: element.quantity,
-                    price: element.price
-                })
-                await OrderDetail.save(orderDetail);
-            });
 
             resolve(newOrder);
 
@@ -140,7 +163,7 @@ const createOrder = (customerId, data, next) => {
     })
 };
 
-const deleteOrder = (orderId) => {
+const deleteOrder = (orderId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
             let order = await Order.findOne({ _id: orderId });
@@ -188,7 +211,9 @@ const deleteOrder = (orderId) => {
 const getOrder = (orderId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let order = await Order.findOne({ _id: orderId });
+            let order = await Order.findOne({ _id: orderId }).populate({path: 'orderDetails', populate: {
+                path: 'productId'
+            }});
 
             if (!order) {
                 let err = {

@@ -1,74 +1,37 @@
 require('dotenv').config();
 const bcrypt = require("bcrypt");
 const Account = require('../models/Account.js');
+const Role = require('../models/Role.js');
 const User = require('../models/User.js');
 const Code = require('../constants/CodeConstant.js');
 const RoleConstant = require("../constants/RoleConstant.js");
 const AccountStatus = require('../constants/AccountStatus.js');
 const FileService = require('./FileService.js');
 
-const getAccountList = (inforQuery, roleId, next) => {
+const getAccountList = (inforQuery, roleName, next) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const searchConditions = { roleId: roleId };
+
+            let role = await Role.findOne({name : roleName})
+            const searchConditions = { role: role };
             if (inforQuery.searchQuery) {
                 searchConditions.$and = [
                     { username: { $regex: inforQuery.searchQuery, $options: 'i' } },
-                    { roleId: roleId }
+                    { role: role }
                 ];
             }
-
-            const accountList = await Account.aggregate([
-                { $match: searchConditions },
-                {
-                    $lookup: {
-                        from: 'users',
-                        localField: '_id',
-                        foreignField: 'accountId',
-                        as: 'infor'
-                    }
-                },
-                {
-                    $unwind: {
-                        path: '$infor',
-                        preserveNullAndEmptyArrays: true
-                    }
-                },
-                {
-                    $project: {
-                        _id: 1,
-                        username: 1,
-                        status: 1,
-                        thumbnail: 1,
-                        createdAt: 1,
-                        infor: {
-                            _id: "$infor._id",
-                            fullName: "$infor.fullName",
-                            phoneNumber: "$infor.phoneNumber",
-                            address: "$infor.address",
-                            dob: "$infor.dob",
-                            age: "$infor.age",
-                            gender: "$infor.gender"
-                        }
-                    }
-                },
-                {
-                    $sort: { [inforQuery.sortField]: inforQuery.sortOrder }
-                },
-                {
-                    $skip: (inforQuery.page - 1) * inforQuery.limit
-                },
-                {
-                    $limit: inforQuery.limit
-                }
-            ])
+            
+            const accounts = await Account.find(searchConditions).populate('user')
+            .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
+            .skip((inforQuery.page - 1) * inforQuery.limit)
+            .limit(inforQuery.limit);;
 
             const total = await Account.countDocuments(searchConditions);
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
             let result = {
-                content: accountList,
+                content: accounts,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -152,16 +115,15 @@ const registerEmployee = (file, registerInfor, next) => {
                 return next(err);
             }
 
-            let newAccount = new Account({
-                username: registerInfor.username,
-                thumbnail: image.data._id,
-                password: hashPassword,
-                roleId: RoleConstant[1].id,
-                status: AccountStatus.ONLINE,
-                createdAt: new Date(),
-            });
+            let role = await Role.findOne({name : RoleConstant[1]})
 
-            await newAccount.save();
+            if (!role) {
+                let err = {
+                    code: Code.ENTITY_NOT_EXIST,
+                    message: "Chức vụ không tồn tại",
+                }
+                return next(err);
+            }
 
             let newEmployee = new User({
                 phoneNumber: registerInfor.infor.phoneNumber,
@@ -169,10 +131,21 @@ const registerEmployee = (file, registerInfor, next) => {
                 address: registerInfor.infor.address,
                 gender: registerInfor.infor.gender,
                 dob: registerInfor.infor.dob,
-                accountId: newAccount._id
             });
 
-            await newEmployee.save();
+            newEmployee = await newEmployee.save();
+
+            let newAccount = new Account({
+                username: registerInfor.username,
+                thumbnail: image.data._id,
+                password: hashPassword,
+                role: role,
+                user: newEmployee,
+                status: AccountStatus.ONLINE,
+                createdAt: new Date(),
+            });
+
+            await newAccount.save();
 
             let result = {
                 username: registerInfor.username,
@@ -204,7 +177,7 @@ const registerCustomer = (registerInfor, next) => {
                 return next(err);
             }
 
-            let existingUserByPhoneNumber = await User.findOne({ phoneNumber: registerInfor.infor.phoneNumber });
+            let existingUserByPhoneNumber = await User.findOne({ phoneNumber: registerInfor.user.phoneNumber });
             if (existingUserByPhoneNumber) {
                 let err = {
                     message: "Số điện thoại đã được sử dụng!",
@@ -215,23 +188,25 @@ const registerCustomer = (registerInfor, next) => {
 
             let hashPassword = await bcrypt.hash(registerInfor.password, Number(process.env.SALTROUNDS));
 
+            let newCustomer = new User({
+                phoneNumber: registerInfor.user.phoneNumber,
+                fullName: registerInfor.user.fullName,
+            });
+
+            newCustomer = await newCustomer.save();
+
+            let role = await Role.findOne({name: RoleConstant[2]})
+
             let newAccount = new Account({
                 username: registerInfor.username,
                 password: hashPassword,
-                roleId: RoleConstant[2].id,
+                role: role,
+                user: newCustomer,
                 status: AccountStatus.ONLINE,
                 createdAt: new Date(),
             });
 
-            await newAccount.save()
-
-            let newCustomer = new User({
-                phoneNumber: registerInfor.infor.phoneNumber,
-                fullName: registerInfor.infor.fullName,
-                accountId: newAccount._id
-            });
-
-            await newCustomer.save();
+            newAccount = await newAccount.save()
 
             let data = {
                 username: newAccount.username
@@ -357,4 +332,41 @@ const editProfile = (accountId, accountInfor, next) => {
     })
 }
 
-module.exports = { getAccountList, changeAccountStatus, registerEmployee, registerCustomer, getProfile, editProfile }
+const getEmployeeStatusList = (inforQuery, next) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let role = await Role.findOne({name : RoleConstant[1]})
+
+            const userQuery = userFullName ? { fullName: inforQuery.searchQuery } : {};
+            
+            const accounts = await Account.find({role: role}).populate({path:'user', match: userQuery})
+            .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
+            .skip((inforQuery.page - 1) * inforQuery.limit)
+            .limit(inforQuery.limit);;
+
+            const total = await Account.countDocuments(searchConditions);
+            const totalPages = Math.ceil(total / inforQuery.limit);
+            const isLastPage = inforQuery.page >= totalPages;
+
+            let result = {
+                content: accounts,
+                total: total,
+                page: inforQuery.page,
+                totalPages: totalPages,
+                isLastPage: isLastPage,
+            }
+            resolve(result);
+        } catch (error) {
+            console.error(`Lỗi xảy ra trong quá trình lấy danh sách tài khoản!`, error);
+            let err = {
+                status: 500,
+                message: "Lỗi xảy ra trong quá trình lấy danh sách tài khoản!",
+                code: Code.ERROR
+            };
+            reject(err);
+        }
+    })
+}
+
+module.exports = { getAccountList, changeAccountStatus, registerEmployee, registerCustomer, getProfile, editProfile, getEmployeeStatusList }

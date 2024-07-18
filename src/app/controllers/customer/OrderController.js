@@ -55,7 +55,7 @@ const getOrderListOfCustomer = async (req, res, next) => {
 const getOrder = async (req, res, next) => {
     let orderId = req.params.orderId;
     try {
-        let result = await OrderService.getOrder(orderId);
+        let result = await OrderService.getOrder(orderId, next);
         let success = {
             code: Code.SUCCESS,
             message: "Lấy thông tin đơn hàng thành công",

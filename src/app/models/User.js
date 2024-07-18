@@ -16,10 +16,6 @@ const UserScheme = mongoose.Schema({
     },
     dob: Date,
     gender: Boolean,
-    accountId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'accounts'
-    }
 })
 
 module.exports = mongoose.model("users", UserScheme);

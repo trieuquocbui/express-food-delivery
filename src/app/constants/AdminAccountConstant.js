@@ -3,7 +3,7 @@ const RolesConstant = require('../constants/RoleConstant.js');
 const AdminAccountConstant = {
     username: "admin",
     password: "123456",
-    roleId: RolesConstant[0].id,
+    roleName: RolesConstant[0],
 }
 
 const AdminInforConstant = {
