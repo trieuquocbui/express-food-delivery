@@ -94,7 +94,7 @@ const registerEmployee = (file, registerInfor, next) => {
                 return next(err);
             }
 
-            let existingPhoneNumber = await User.findOne({ phoneNumber: registerInfor.infor.phoneNumber });
+            let existingPhoneNumber = await User.findOne({ phoneNumber: registerInfor.user.phoneNumber });
             if (existingPhoneNumber) {
                 let err = {
                     message: "Số điện thoại đã được sử dụng!",
@@ -126,11 +126,11 @@ const registerEmployee = (file, registerInfor, next) => {
             }
 
             let newEmployee = new User({
-                phoneNumber: registerInfor.infor.phoneNumber,
-                fullName: registerInfor.infor.fullName,
-                address: registerInfor.infor.address,
-                gender: registerInfor.infor.gender,
-                dob: registerInfor.infor.dob,
+                phoneNumber: registerInfor.user.phoneNumber,
+                fullName: registerInfor.user.fullName,
+                address: registerInfor.user.address,
+                gender: registerInfor.user.gender,
+                dob: registerInfor.user.dob,
             });
 
             newEmployee = await newEmployee.save();
@@ -338,16 +338,37 @@ const getEmployeeStatusList = (inforQuery, next) => {
 
             let role = await Role.findOne({name : RoleConstant[1]})
 
-            const userQuery = userFullName ? { fullName: inforQuery.searchQuery } : {};
+            let accountQuery = { role: role, status: 1 };
             
-            const accounts = await Account.find({role: role}).populate({path:'user', match: userQuery})
-            .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
-            .skip((inforQuery.page - 1) * inforQuery.limit)
-            .limit(inforQuery.limit);;
+            let total = 0
+            let totalPages = 0
+            let isLastPage = 0
+            let accounts
+            
+            if(inforQuery.searchQuery){
+                accounts = await Account.find(accountQuery).populate({path:'user', match: {fullName: new RegExp(inforQuery.searchQuery, 'i')}})
+                .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
+                accounts = accounts.filter(account => account.user)
+                total = accounts.length
+                let result = [];
+                let count = 0
+                let i = (inforQuery.page - 1) * inforQuery.limit
+                for(i; i < accounts.length && count < inforQuery.limit; i++ ){
+                    count++
+                    result.push(accounts[i])
+                }
+                accounts = result
+                
+            } else{
+                accounts = await Account.find(accountQuery).populate({path:'user', match: {fullName: new RegExp(inforQuery.searchQuery, 'i')}})
+                .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
+                .skip((inforQuery.page - 1) * inforQuery.limit)
+                .limit(inforQuery.limit);
+                total = await Account.countDocuments(accountQuery);
+            }
 
-            const total = await Account.countDocuments(searchConditions);
-            const totalPages = Math.ceil(total / inforQuery.limit);
-            const isLastPage = inforQuery.page >= totalPages;
+            totalPages = Math.ceil(total / inforQuery.limit);
+            isLastPage = inforQuery.page >= totalPages;
 
             let result = {
                 content: accounts,

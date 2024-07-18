@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
 
 const AssignmentScheme = mongoose.Schema({
-    adminId: {
+    admin: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'
     },
-    employeeId: {
+    employee: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'
     },
-    OrderId: {
+    order: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'orders'
     },

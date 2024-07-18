@@ -15,4 +15,6 @@ router.get('/list/:roleId', AuthMiddleware.verifyTokenAdmin, AccountController.g
 
 router.put('/:username', AuthMiddleware.verifyTokenAdmin, AccountController.changeAccountStatus);
 
+router.get('/employee/list', AuthMiddleware.verifyTokenAdmin, AccountController.getEmployeeStatusList);
+
 module.exports = router;
