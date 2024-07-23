@@ -2,7 +2,6 @@ require('dotenv').config();
 require('./app/configs/DatabaseConfig.js');
 const express = require('express');
 const cors = require('./app/configs/CorsConfig.js');
-
 const authRoute = require('./app/routes/auth/AuthRoute.js');
 const productManagementRoute = require('./app/routes/admin/ProductRoute.js');
 const categoryManagementRoute = require('./app/routes/admin/CategoryRoute.js');
@@ -15,11 +14,26 @@ const customerAccountRoute = require('./app/routes/customer/AccountRoute.js');
 const signmentOfAdminRoute = require('./app/routes/admin/AssignmenRoute.js');
 const signmentOfEmployeeRoute = require('./app/routes/employee/AssignmenRoute.js');
 
+const { createServer } = require('node:http');
+const { Server } = require('socket.io');
+
 const port = process.env.PORT;
 const hostname = process.env.HOST_NAME;
 const app = express();
 
 app.use(cors); 
+
+const server = createServer(app);
+
+const io = new Server(server,{
+    cors: {
+      origin: "*"
+    }
+});
+
+io.on('connection',(socket)=>{
+    console.log("A user connect");
+})
 
 app.use(express.json());
 
@@ -57,6 +71,7 @@ app.use((error, req, res, next) => {
     });
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`Server is running http://${hostname}:${port}`);
 });
+

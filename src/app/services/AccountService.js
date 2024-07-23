@@ -177,11 +177,11 @@ const registerCustomer = (registerInfor, next) => {
                 return next(err);
             }
 
-            let existingUserByPhoneNumber = await User.findOne({ phoneNumber: registerInfor.user.phoneNumber });
+            let existingUserByPhoneNumber = await User.findOne({ phoneNumber: registerInfor.phoneNumber });
             if (existingUserByPhoneNumber) {
                 let err = {
                     message: "Số điện thoại đã được sử dụng!",
-                    code: Code.ENTIRY_EXIST
+                    code: Code.PHONENUMBER_EXIST
                 };
                 return next(err);
             }
@@ -189,8 +189,8 @@ const registerCustomer = (registerInfor, next) => {
             let hashPassword = await bcrypt.hash(registerInfor.password, Number(process.env.SALTROUNDS));
 
             let newCustomer = new User({
-                phoneNumber: registerInfor.user.phoneNumber,
-                fullName: registerInfor.user.fullName,
+                phoneNumber: registerInfor.phoneNumber,
+                fullName: registerInfor.fullName,
             });
 
             newCustomer = await newCustomer.save();
