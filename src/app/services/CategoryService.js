@@ -225,7 +225,7 @@ const getCategory = (categoryId, next) => {
 const getAll = ()=>{
     return new Promise(async (resolve, reject) => {
         try {
-            let categoryList = await Category.find().select({ _id: 1, name: 1 });
+            let categoryList = await Category.find();
             resolve(categoryList);
 
         } catch (error) {

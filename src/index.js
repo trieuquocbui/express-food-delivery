@@ -13,6 +13,7 @@ const accountManagementRoute = require('./app/routes/admin/AccountRoute.js');
 const customerAccountRoute = require('./app/routes/customer/AccountRoute.js');
 const signmentOfAdminRoute = require('./app/routes/admin/AssignmenRoute.js');
 const signmentOfEmployeeRoute = require('./app/routes/employee/AssignmenRoute.js');
+const customerCartDetailsRoute = require('./app/routes/customer/CartDetailsRouter.js');
 
 const { createServer } = require('node:http');
 const { Server } = require('socket.io');
@@ -48,6 +49,8 @@ app.use('/api/v1/management/product', productManagementRoute);
 app.use('/api/v1/management/order', orderManagementRoute);
 
 app.use('/api/v1/customer/account', customerAccountRoute);
+
+app.use('/api/v1/customer/cart-details', customerCartDetailsRoute);
 
 app.use('/api/v1/order', customerOrderRoute);
 

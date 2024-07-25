@@ -1,6 +1,7 @@
 const FileService = require('../../services/FileService.js');
 const ProductService = require('../../services/ProductService.js');
 const OrderService = require('../../services/OrderService.js');
+const CategoryService = require('../../services/CategoryService.js');
 const Code = require('../../constants/CodeConstant.js');
 
 const getImage = async (req, res, next) => {
@@ -44,5 +45,49 @@ const getOrder = async (req, res, next) => {
     }
 }
 
+const getProductList = async (req, res, next) => {
+    
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    let sortField = req.query.sortField || '_id';
+    let sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+    let searchQuery = req.query.search;
+    let category = req.query.category
+    
+    let inforQuery = {
+        page: page,
+        limit: limit,
+        sortField: sortField,
+        sortOrder: sortOrder,
+        searchQuery: searchQuery,
+        category: category
+    }
+    try {
+        let data = await ProductService.getProductList(inforQuery);
+        let success = {
+            code: Code.SUCCESS,
+            message: "Lấy danh sách sản phẩm thành công",
+            data: data
+        }
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
 
-module.exports = { getImage, getProduct, getOrder }
+const getAllCategory = async(req, res, next) => {
+    try {
+        let result = await CategoryService.getAll();
+        let success = {
+            code: Code.SUCCESS,
+            message: "lấy danh mục thành công",
+            data: result
+        }
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
+
+
+module.exports = { getImage, getProduct, getOrder, getProductList, getAllCategory }

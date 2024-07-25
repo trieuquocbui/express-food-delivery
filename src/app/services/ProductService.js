@@ -6,103 +6,126 @@ const Category = require('../models/Category.js');
 const Order = require('../models/Order.js');
 const User = require('../models/User.js')
 
-const getProductList = (inforQuery) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const searchConditions = {};
-            if (inforQuery.searchQuery) {
-                searchConditions.$and = [
-                    { name: { $regex: inforQuery.searchQuery, $options: 'i' } },
-                ];
-            }
-            const currentDate = new Date();
-            const productList = await Product.aggregate([
-                {
-                    $match: searchConditions
-                },
-                {
-                    $lookup: {
-                        from: 'price_details',
-                        let: { product: '$_id' },
-                        pipeline: [
-                            {
-                                $match: {
-                                    $expr: {
-                                        $and: [
-                                            { $eq: ['$product', '$$product'] },
-                                            { $lte: ['$appliedAt', currentDate] }
-                                        ]
-                                    }
-                                }
-                            },
-                            { $sort: { appliedAt: -1 } },
-                            { $limit: 1 }
-                        ],
-                        as: 'latestPriceDetail'
-                    }
-                },
-                {
-                    $unwind: {
-                        path: '$latestPriceDetail',
-                        preserveNullAndEmptyArrays: true
-                    }
-                },
-                {
-                    $lookup: {
-                        from: 'categories',
-                        localField: 'category',
-                        foreignField: '_id',
-                        as: 'category'
-                    }
-                },
-                {
-                    $project: {
-                        _id: 1,
-                        name: 1,
-                        category: { _id: 1, name: 1 },
-                        thumbnail: 1,
-                        description: 1,
-                        sold: 1,
-                        quantity: 1,
-                        status: 1,
-                        featured: 1,
-                        price: '$latestPriceDetail.newPrice',
-                        appliedAt: '$latestPriceDetail.appliedAt',
-                    }
-                },
-                {
-                    $sort: { [inforQuery.sortField]: inforQuery.sortOrder }
-                },
-                {
-                    $skip: (inforQuery.page - 1) * inforQuery.limit
-                },
-                {
-                    $limit: inforQuery.limit
-                }
-            ])
+const getProductList = async (inforQuery) => {
+    try {
+        const searchConditions = {};
 
-            const total = await Product.countDocuments();
-            const totalPages = Math.ceil(total / inforQuery.limit);
-            const isLastPage = inforQuery.page >= totalPages;
-
-            let result = {
-                content: productList,
-                total: total,
-                page: inforQuery.page,
-                totalPages: totalPages,
-                isLastPage: isLastPage,
-            }
-            resolve(result);
-        } catch (error) {
-            console.log(`Có lỗi xảy ra trong quá trình lấy danh sách sản phẩm: ${error}`);
-            let err = {
-                code: Code.ERROR,
-                message: "Có lỗi xảy ra trong quá trình lấy danh sách sản phẩm"
-            };
-            reject(err);
+        if (inforQuery.searchQuery || inforQuery.category) {
+            searchConditions.$and = [];
         }
-    })
+
+        if (inforQuery.searchQuery) {
+            searchConditions.$and.push({
+                name: { $regex: inforQuery.searchQuery, $options: 'i' }
+            });
+        }
+
+        if (inforQuery.category) {
+            let category = await Category.findOne({ _id: inforQuery.category });
+            
+            if (category) {
+                searchConditions.$and.push({
+                    category: category._id
+                });
+            } else {
+                return {
+                    content: [],
+                    total: 0,
+                    page: inforQuery.page,
+                    totalPages: 0,
+                    isLastPage: true
+                };
+            }
+        }
+
+        const currentDate = new Date();
+        const productList = await Product.aggregate([
+            {
+                $match: searchConditions
+            },
+            {
+                $lookup: {
+                    from: 'price_details',
+                    let: { product: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$product', '$$product'] },
+                                        { $lte: ['$appliedAt', currentDate] }
+                                    ]
+                                }
+                            }
+                        },
+                        { $sort: { appliedAt: -1 } },
+                        { $limit: 1 }
+                    ],
+                    as: 'latestPriceDetail'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$latestPriceDetail',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'category',
+                    foreignField: '_id',
+                    as: 'category'
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    category: { _id: 1, name: 1 },
+                    thumbnail: 1,
+                    description: 1,
+                    sold: 1,
+                    quantity: 1,
+                    status: 1,
+                    featured: 1,
+                    price: '$latestPriceDetail.newPrice',
+                    appliedAt: '$latestPriceDetail.appliedAt'
+                }
+            },
+            {
+                $sort: { [inforQuery.sortField]: inforQuery.sortOrder }
+            },
+            {
+                $skip: (inforQuery.page - 1) * inforQuery.limit
+            },
+            {
+                $limit: inforQuery.limit
+            }
+        ]);
+
+        const total = await Product.countDocuments(searchConditions);
+        const totalPages = Math.ceil(total / inforQuery.limit);
+        const isLastPage = inforQuery.page >= totalPages;
+
+        const result = {
+            content: productList,
+            total: total,
+            page: inforQuery.page,
+            totalPages: totalPages,
+            isLastPage: isLastPage
+        };
+
+        return result;
+    } catch (error) {
+        console.log(`Có lỗi xảy ra trong quá trình lấy danh sách sản phẩm: ${error}`);
+        throw {
+            code: Code.ERROR,
+            message: "Có lỗi xảy ra trong quá trình lấy danh sách sản phẩm"
+        };
+    }
 }
+
 
 const createProduct = (file, data, userId, next) => {
     return new Promise(async (resolve, reject) => {
