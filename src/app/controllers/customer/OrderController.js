@@ -8,7 +8,7 @@ const createOrder = async (req, res, next) => {
     const token = authorization.split(' ')[1];
     let infor = await AuthMiddleware.decoded(token);
     let order = req.body;
-    try {
+    try { 
         let result = await OrderService.createOrder(infor.userId, order, next);
         let success = {
             code: Code.SUCCESS,

@@ -99,10 +99,10 @@ const createOrder = (customerId, data, next) => {
             }
 
             const orderDetailIds = await Promise.all(data.orderDetails.map(async detail => {
-                let product = await Product.findOne({_id: detail.productId})
+                let product = await Product.findOne({_id: detail.product})
                 product.quantity -= detail.quantity;
                 product.sold += detail.quantity;
-                await Product.updateOne({ _id: detail.productId }, { quantity: product.quantity, sold: product.sold });
+                await Product.updateOne({ _id: detail.product }, { quantity: product.quantity, sold: product.sold });
 
                 const newDetail = new OrderDetail({
                     product: product,
@@ -115,8 +115,14 @@ const createOrder = (customerId, data, next) => {
             let order = new Order({
                 customer: customer,
                 totalAmount: data.totalAmount,
-                status: 1,
-                address: data.address,
+                fullName: data.fullName,
+                phoneNumber: data.phoneNumber,
+                shipping: data.shipping,
+                status: data.status,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                address1: data.address1,
+                address2: data.address2,
                 createdAt: new Date(),
                 orderDetails: orderDetailIds
             });
@@ -144,8 +150,6 @@ const createOrder = (customerId, data, next) => {
                 }
                 return next(err);
             }
-
-            console.log(account)
 
             NotificationService.createNotificationDetails(notification, account);
 
