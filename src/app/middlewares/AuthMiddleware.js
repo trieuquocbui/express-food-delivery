@@ -50,6 +50,19 @@ exports.verifyTokenCustomer = async (req, res, next) => {
     verifyToken(req, res, next, RolesConstant[2])
 }
 
+exports.hasAuthorization = async (req, res, next) => {
+    const authorization = req.get("Authorization");
+    if (!authorization) {
+        const err = {
+            statusCode: 401,
+            message: "Bạn không có quyền truy cập!",
+            code: Code.UNAUTHORIZATION,
+        };
+        return next(err);
+    }
+    next();
+}
+
 exports.generateToken = (payload) => {
     try {
         return jwt.sign(payload, process.env.TOKEN_SECRET, {

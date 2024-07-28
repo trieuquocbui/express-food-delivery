@@ -1,9 +1,45 @@
 const { request } = require('express');
 const Notification = require('../models/Notification.js');
 const NotificationDetail = require('../models/NotificationDetail.js');
+const Account = require('../models/Account.js');
 const Code = require('../constants/CodeConstant.js');
 
+const getNotificationList = (accountid, inforQuery) => {
+    return new Promise( async (resovle, reject) => {
+        try {
+            
+            const account = await Account.findOne({_id: accountid});
 
+            const notificationList = await NotificationDetail.find({account: account}).populate('notification')
+            .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
+            .skip((inforQuery.page - 1) * inforQuery.limit)
+            .limit(inforQuery.limit);
+
+            const total = await NotificationDetail.countDocuments({account: account});
+            const totalPages = Math.ceil(total / inforQuery.limit);
+            const isLastPage = inforQuery.page >= totalPages;
+
+            let result = {
+                content: notificationList,
+                total: total,
+                page: inforQuery.page,
+                totalPages: totalPages,
+                isLastPage: isLastPage,
+            }
+
+            resovle(result);
+        } catch (error) {
+            console.error(`Lỗi xảy ra trong quá trình tạo thông báo:`, error);
+            let err = {
+                status: 500,
+                message: "Lỗi xảy ra trong quá trình tạo thông báo!",
+                code: Code.ERROR
+            };
+            reject(err);
+        }
+    })
+}
+ 
 const createNotification = (order ,fullName) => {
     return new Promise( async (resovle, reject) => {
         try {
@@ -24,7 +60,6 @@ const createNotification = (order ,fullName) => {
             };
             reject(err);
         }
-        
     })
 };
 
@@ -50,4 +85,4 @@ const createNotificationDetails = (notification, account) => {
     })
 };
 
-module.exports = {createNotification, createNotificationDetails};
+module.exports = {createNotification, createNotificationDetails, getNotificationList};

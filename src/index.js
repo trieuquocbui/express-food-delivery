@@ -14,6 +14,7 @@ const customerAccountRoute = require('./app/routes/customer/AccountRoute.js');
 const signmentOfAdminRoute = require('./app/routes/admin/AssignmenRoute.js');
 const signmentOfEmployeeRoute = require('./app/routes/employee/AssignmenRoute.js');
 const customerCartDetailsRoute = require('./app/routes/customer/CartDetailsRouter.js');
+const ioMiddleware = require('./app/middlewares/SocketIOMiddleware.js')
 
 const { createServer } = require('node:http');
 const { Server } = require('socket.io');
@@ -32,9 +33,11 @@ const io = new Server(server,{
     }
 });
 
-io.on('connection',(socket)=>{
+io.on('connect',(socket)=>{
     console.log("A user connect");
 })
+
+app.use(ioMiddleware(io));
 
 app.use(express.json());
 

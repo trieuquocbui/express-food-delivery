@@ -5,8 +5,6 @@ const AuthMiddleware = require('../../middlewares/AuthMiddleware.js');
 
 const OrderController = require('../../controllers/admin/OrderController.js');
 
-const AssignmentController = require('../../controllers/admin/AssignmentController.js');
-
 route.get('/list/status/:status', AuthMiddleware.verifyTokenAdmin, OrderController.getOrderList);
 
 route.get('/:orderId', AuthMiddleware.verifyTokenAdmin, OrderController.getOrder);

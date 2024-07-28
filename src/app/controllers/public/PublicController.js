@@ -89,5 +89,4 @@ const getAllCategory = async(req, res, next) => {
     }
 }
 
-
 module.exports = { getImage, getProduct, getOrder, getProductList, getAllCategory }

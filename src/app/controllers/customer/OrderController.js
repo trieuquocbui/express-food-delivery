@@ -8,6 +8,7 @@ const createOrder = async (req, res, next) => {
     const token = authorization.split(' ')[1];
     let infor = await AuthMiddleware.decoded(token);
     let order = req.body;
+    const io = req.io;
     try { 
         let result = await OrderService.createOrder(infor.userId, order, next);
         let success = {
@@ -15,6 +16,9 @@ const createOrder = async (req, res, next) => {
             message: "Tạo đơn hàng thành công",
             data: result
         }
+
+        io.emit('registerNotificationToAdmin', "Có đơn đặt hàng mới")
+
         res.send(success);
     } catch (error) {
         next(error);
