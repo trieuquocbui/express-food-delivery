@@ -5,8 +5,14 @@ const Code = require('../constants/CodeConstant.js');
 const Product = require('../models/Product.js');
 const Account = require('../models/Account.js');
 const Role = require('../models/Role.js');
+const Assignment = require('../models/Assignment.js');
+const Location = require('../models/Location.js');
 const RoleConstant = require('../constants/RoleConstant.js');
 const OrderDetail = require('../models/OrderDetail.js');
+const OrderStatus = require('../constants/OrderStatus.js')
+const AccountStatus = require('../constants/AccountStatus.js')
+const namespace = require('../constants/NamespaseSocket.js')
+const onlineEMployees = require('../sockets/employeeOnline.js')
 
 const getOrderListOfCustomer = (customerId, inforQuery) => {
     return new Promise(async (resolve, reject) => {
@@ -119,8 +125,10 @@ const createOrder = (customerId, data, next) => {
                 phoneNumber: data.phoneNumber,
                 shipping: data.shipping,
                 status: data.status,
-                latitude: data.latitude,
-                longitude: data.longitude,
+                location: {
+                    type: "Point",
+                    coordinates: [data.longitude, data.latitude]
+                  },
                 address1: data.address1,
                 address2: data.address2,
                 createdAt: new Date(),
@@ -240,7 +248,7 @@ const getOrder = (orderId, next) => {
     })
 }
 
-const editOrderStatus = (orderId, status) => {
+const editOrderStatus = (io, orderId, data,next) => {
     return new Promise(async (resolve, reject) => {
         try {
             let order = await Order.findOne({ _id: orderId });
@@ -253,10 +261,11 @@ const editOrderStatus = (orderId, status) => {
                 return next(err);
             }
 
-            order.status = status
-
+            if(data.status == OrderStatus.ACCEPT){
+                await findAndAssignEmployee(io,order);
+            } 
+            order.status = data.status
             order = await order.save();
-
             resolve(order);
         } catch (error) {
             console.error(`Lỗi xảy ra trong quá trình chỉnh sữa đơn hàng:`, error);
@@ -268,6 +277,109 @@ const editOrderStatus = (orderId, status) => {
             reject(err);
         }
     })
+}
+
+const findAndAssignEmployee = async (io,order) => {
+    try {
+        // lấy danh sách nhân viên
+        const role = await Role.findOne({ name: RoleConstant[1] });
+        const accounts = await Account.find({ role: role, status: AccountStatus.ONLINE }).populate('user');
+        const onlineEmployeeIds = accounts.map(item => item.user._id);
+
+        // lấy location mới nhất của nhân viên onl
+        const latestLocations = await Location.aggregate([
+            { $match: { employee: { $in: onlineEmployeeIds.map(id => id) } } },
+            { $sort: { timestamp: -1 } },
+            { $group: { _id: "$employee", latestLocation: { $first: "$$ROOT" } } }
+        ]);
+
+        // tính toán khoản cách sắp xếp gần nhất hay xa nhất
+        const employeesWithDistance = latestLocations.map(emp => ({
+            employee: emp._id,
+            distance: calculateDistance(order.location.coordinates, emp.latestLocation.location.coordinates)
+        })).sort((a, b) => a.distance - b.distance);
+
+        await assignOrderToEmployee(io,order, employeesWithDistance);
+    } catch (error) {
+        console.error('Lỗi trong quá trính phân công', error);
+        
+    }
+}
+
+// công  thức Haversine Formula
+const  calculateDistance = (coord1, coord2) => {
+    const [lon1, lat1] = coord1;
+  const [lon2, lat2] = coord2;
+
+  const R = 6371e3; 
+  const φ1 = lat1 * Math.PI / 180; 
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  const distance = R * c; 
+  return distance;
+}
+
+const assignOrderToEmployee = async (io,order, employees, index = 0) => {
+    if (index >= employees.length) {
+        console.log("Đơn hàng chưa phân công")
+        await Order.findByIdAndUpdate(order._id, { assignmented: 0 });
+        io.of(namespace.ADMIN).emit('order-unassigned', "Đơn hàng chưa phân công");
+        return;
+    }
+    const employee = employees[index];
+    const employeeSocket = onlineEMployees.get(employee.employee.toString());
+    if (employeeSocket) {
+        return new Promise((resolve) => {
+
+            employeeSocket.emit('new-order-request', { 
+                orderId: order._id, 
+                distance: employee.distance
+            }, async (response, err) => {
+                if (err) {
+                    console.error("Error:", err);
+                }
+                if (response && response.accepted) {
+                    await createAssignment(io,order._id, employee.employee, 1);
+                    resolve();
+                } 
+                else {
+                    await createAssignment(io,order._id, employee.employee, 0);
+                    await assignOrderToEmployee(io, order, employees, index + 1);
+                    resolve();
+                }
+            });
+
+            // Đặt timeout cho phản hồi của nhân viên
+            // setTimeout(() => {
+            //     assignOrderToEmployee(order, employees, index + 1);
+            //     resolve();
+            // }, 10000); // 30 giây
+        });
+    } 
+}
+
+const  createAssignment = async (io,orderId, employeeId, status) => {
+    const assignment = new Assignment({
+        employee: employeeId,
+        order: orderId,
+        status: status,
+        assignedAt: new Date()
+    });
+
+    await assignment.save();
+
+    if(status == 1){
+        console.log("Đơn đã phân công")
+        await Order.findByIdAndUpdate(orderId, { assignmented: 1 });
+        io.of(namespace.ADMIN).emit('order-assigned', "Đơn đã phân công");
+    }
 }
 
 module.exports = { getOrderListOfCustomer, getOrderList, createOrder, deleteOrder, getOrder, editOrderStatus };

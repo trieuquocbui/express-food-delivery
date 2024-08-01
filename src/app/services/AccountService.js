@@ -390,4 +390,22 @@ const getEmployeeStatusList = (inforQuery, next) => {
     })
 }
 
-module.exports = { getAccountList, changeAccountStatus, registerEmployee, registerCustomer, getProfile, editProfile, getEmployeeStatusList }
+const getAccount = (accountId , next) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let account = await Account.findOne({_id: accountId}).populate('user')
+             
+            resolve(account)
+        } catch (error) {
+            console.log(`Lỗi xảy ra trong quá trình lấy thông tin ${error}`)
+            let err = {
+                status: 500,
+                code: Code.ERROR,
+                message: "Lỗi xảy ra trong quá trình lấy thông tin",
+            }
+            reject(err);
+        }
+    })
+}
+
+module.exports = { getAccountList, changeAccountStatus, registerEmployee, registerCustomer, getProfile, editProfile, getEmployeeStatusList, getAccount }

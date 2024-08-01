@@ -72,4 +72,90 @@ const employeeAcceptOrder = (data, next) => {
     })
 }
 
-module.exports = {assignedOrderToEmployee, employeeAcceptOrder};
+const getOrderOfNewestAssignment = (userId, next) => {
+    return new Promise( async (resolve, reject) => {
+        try {
+            const assignment = await Assignment.find({ employee: userId }).populate({path:'order', populate: {
+                path: 'orderDetails',
+                populate: {
+                    path: 'product',
+                    model: 'products' 
+                }
+            }})
+            .sort({ assignedAt: -1 }) 
+            .limit(1); 
+            if(assignment[0].order.status != OrderStatus.FINISH){
+                resolve(assignment[0])
+            } else {
+                resolve(null)
+            }
+            
+        } catch (error) {
+            console.log(`Có lỗi xảy ra trong quá trình lấy đơn: ${error}`)
+            let err = {
+                code: Code.ERROR,
+                message: "Có lỗi xảy ra trong quá trình lấy đơn",
+            }
+            reject(err);
+        }
+    })
+}
+
+const getAssignment = (userId,assignmentId, next) => {
+    return new Promise( async (resolve, reject) => {
+        try {
+            const assignments = await Assignment.findOne({_id: assignmentId ,employee: userId }).populate({path:'order', populate: {
+                path: 'orderDetails',
+                populate: {
+                    path: 'product',
+                    model: 'products' 
+                }
+            }})
+
+            resolve(assignments)
+           
+        } catch (error) {
+            console.log(`Có lỗi xảy ra trong quá trình lấy đơn: ${error}`)
+            let err = {
+                code: Code.ERROR,
+                message: "Có lỗi xảy ra trong quá trình lấy đơn",
+            }
+            reject(err);
+        }
+    })
+}
+
+const getListAssignment = (userId, inforQuery ,next) => {
+    return new Promise( async (resolve, reject) => {
+        try {
+            const assignments = await Assignment.find({ employee: userId }).populate({path:'order', populate: {
+                path:'orderDetails'
+            }})
+            .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
+            .skip((inforQuery.page - 1) * inforQuery.limit)
+            .limit(inforQuery.limit);
+    
+            const total = await Assignment.countDocuments({ employee: userId });
+            const totalPages = Math.ceil(total / inforQuery.limit);
+            const isLastPage = inforQuery.page >= totalPages;
+    
+            let result = {
+                content: assignments,
+                total: total,
+                page: inforQuery.page,
+                totalPages: totalPages,
+                isLastPage: isLastPage,
+            }
+            resolve(result);
+        } catch (error) {
+            console.log(`Có lỗi xảy ra trong quá trình lấy đơn: ${error}`)
+            let err = {
+                code: Code.ERROR,
+                message: "Có lỗi xảy ra trong quá trình lấy đơn",
+            }
+            reject(err);
+        }
+    })
+}
+
+module.exports = {assignedOrderToEmployee, employeeAcceptOrder, getOrderOfNewestAssignment, getListAssignment , getAssignment};

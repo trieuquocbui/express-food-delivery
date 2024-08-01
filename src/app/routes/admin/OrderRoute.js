@@ -9,6 +9,4 @@ route.get('/list/status/:status', AuthMiddleware.verifyTokenAdmin, OrderControll
 
 route.get('/:orderId', AuthMiddleware.verifyTokenAdmin, OrderController.getOrder);
 
-route.delete('/:orderId/delete', AuthMiddleware.verifyTokenAdmin, OrderController.deleteOrder);
-
 module.exports = route;

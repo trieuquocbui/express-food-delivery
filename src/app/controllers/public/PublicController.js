@@ -2,6 +2,7 @@ const FileService = require('../../services/FileService.js');
 const ProductService = require('../../services/ProductService.js');
 const OrderService = require('../../services/OrderService.js');
 const CategoryService = require('../../services/CategoryService.js');
+const AccountService = require('../../services/AccountService.js');
 const Code = require('../../constants/CodeConstant.js');
 
 const getImage = async (req, res, next) => {
@@ -89,4 +90,33 @@ const getAllCategory = async(req, res, next) => {
     }
 }
 
-module.exports = { getImage, getProduct, getOrder, getProductList, getAllCategory }
+const getAccount = async(req, res, next) => {
+    try {
+        const result = await AccountService.getAccount(req.params.accountId,next)
+        let success = {
+            code: Code.SUCCESS,
+            message: "Lấy danh sách sản phẩm thành công",
+            data: result
+        }
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
+
+const changeAccountStatus = async (req, res, next) => {
+    let username = req.params.username
+    let data = req.body
+    try {
+        let result = await AccountService.changeAccountStatus(username,data, next);
+        res.send({
+            message: "Chỉnh sửa tài khoản thành công!",
+            code: Code.SUCCESS,
+            data: result
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+module.exports = { getImage, getProduct, getOrder, getProductList, getAllCategory, getAccount, changeAccountStatus }

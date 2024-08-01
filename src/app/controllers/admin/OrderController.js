@@ -1,7 +1,6 @@
-
 const OrderService = require('../../services/OrderService');
 const Code = require('../../constants/CodeConstant.js');
-const Status = require('../../constants/OrderStatus.js');
+
 
 const getOrderList = async (req, res, next) => {
     let status = parseInt(req.params.status);
@@ -33,32 +32,6 @@ const getOrderList = async (req, res, next) => {
     }
 }
 
-const deleteOrder = async (req, res, next) => {
-    let orderId = req.params.orderId;
-    try {
-        let order = await OrderService.getOrder(orderId);
-
-        if (order.status > 1) {
-            let err = {
-                code: Code.ERROR,
-                message: "Không thể chỉnh sữa đơn hàng",
-            };
-            return next(err);
-        }
-
-        let result = await OrderService.editOrderStatus(orderId, Status.CENCEL);
-
-        let success = {
-            code: Code.SUCCESS,
-            message: "Chỉnh sữa đơn hàng thành công",
-            data: result
-        }
-        res.send(success);
-    } catch (error) {
-        next(error);
-    }
-}
-
 const getOrder = async (req, res, next) => {
     let orderId = req.params.orderId;
     try {
@@ -74,4 +47,4 @@ const getOrder = async (req, res, next) => {
     }
 }
 
-module.exports = { getOrderList, deleteOrder, getOrder }
+module.exports = { getOrderList, getOrder }

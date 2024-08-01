@@ -2,6 +2,7 @@ const OrderService = require('../../services/OrderService.js');
 const AuthMiddleware = require('../../middlewares/AuthMiddleware.js');
 const Code = require('../../constants/CodeConstant.js');
 const Status = require('../../constants/OrderStatus.js');
+const namespace = require('../../constants/NamespaseSocket.js')
 
 const createOrder = async (req, res, next) => {
     const authorization = req.get("Authorization");
@@ -17,7 +18,9 @@ const createOrder = async (req, res, next) => {
             data: result
         }
 
-        io.emit('registerNotificationToAdmin', "Có đơn đặt hàng mới")
+        io.of(namespace.ADMIN).emit('registerNotificationToAdmin', "Có đơn đặt hàng mới");
+
+        io.of(namespace.EMPLOYEE).emit('request-location', "Có đơn đặt hàng mới")
 
         res.send(success);
     } catch (error) {
@@ -70,7 +73,5 @@ const getOrder = async (req, res, next) => {
         next(error);
     }
 }
-
-
 
 module.exports = { createOrder, getOrderListOfCustomer, getOrder }

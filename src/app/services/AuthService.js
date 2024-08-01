@@ -4,6 +4,7 @@ const Account = require('../models/Account.js');
 const User = require('../models/User.js');
 const Code = require('../constants/CodeConstant.js');
 const authMethod = require('../middlewares/AuthMiddleware.js');
+const AccountStatus = require('../constants/AccountStatus.js')
 
 const onLogin = (accountInfor, next) => {
     return new Promise(async (resolve, reject) => {
@@ -46,10 +47,17 @@ const onLogin = (accountInfor, next) => {
                 username: account.username,
                 role: account.role.name
             };
+
+            account.status = AccountStatus.ONLINE
+
+            account = await account.save();
            
             const token = authMethod.generateToken(payload);
 
-            resolve(token);
+            resolve({
+                account: account,
+                token: token
+            });
         } catch (error) {
             console.error(`Lỗi trong quá trình xử lý:`, error);
             let err = {
@@ -62,4 +70,36 @@ const onLogin = (accountInfor, next) => {
     })
 }
 
-module.exports = { onLogin }
+const logout = (accountId, next ) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let account = await Account.findOne({ _id: accountId })
+
+            if (!account) {
+                const err = {
+                    statusCode: 400,
+                    message: "Tài khoản không tồn tại!",
+                    code: Code.ENTITY_NOT_EXIST,
+                };
+                return next(err);
+            }
+            
+            account.status = AccountStatus.OFFLINE
+
+            account = await account.save();
+           
+            resolve(accounts);
+        } catch (error) {
+            console.error(`Lỗi trong quá trình xử lý:`, error);
+            let err = {
+                status: 500,
+                message: "Lỗi trong quá trình xử lý!",
+                code: Code.ERROR
+            };
+            reject(err);
+        }
+    })
+}
+
+module.exports = { onLogin, logout }
