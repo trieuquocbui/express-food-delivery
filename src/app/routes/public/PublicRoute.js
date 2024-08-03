@@ -16,6 +16,8 @@ router.get('/products', PublicController.getProductList);
 
 router.get('/category/all', PublicController.getAllCategory);
 
+router.get('/account/user/:userId', PublicController.getAccountByUser);
+
 router.get('/account/:accountId', PublicController.getAccount);
 
 router.get('/notification/list', AuthMiddleware.hasAuthorization , NotificationController.getNotificationList)

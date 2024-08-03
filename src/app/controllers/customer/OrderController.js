@@ -32,22 +32,22 @@ const getOrderListOfCustomer = async (req, res, next) => {
     const authorization = req.get("Authorization");
     const token = authorization.split(' ')[1];
     let infor = await AuthMiddleware.decoded(token);
-
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
     let sortField = req.query.sortField || 'createdAt';
     let sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
     let searchQuery = req.query.search;
+    let status = req.params.status
     let inforQuery = {
         page: page,
         limit: limit,
         sortField: sortField,
         sortOrder: sortOrder,
-        searchQuery: searchQuery
+        searchQuery: searchQuery,
     }
 
     try {
-        let result = await OrderService.getOrderListOfCustomer(infor.userId, inforQuery);
+        let result = await OrderService.getOrderListOfCustomer(infor.userId, inforQuery,status);
         let success = {
             code: Code.SUCCESS,
             message: "Lấy danh sách đơn hàng thành công",

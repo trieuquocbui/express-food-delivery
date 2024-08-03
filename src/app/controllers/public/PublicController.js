@@ -104,6 +104,20 @@ const getAccount = async(req, res, next) => {
     }
 }
 
+const getAccountByUser = async(req, res, next) => {
+    try {
+        const result = await AccountService.getAccountByUser(req.params.userId,next)
+        let success = {
+            code: Code.SUCCESS,
+            message: "Lấy danh sách sản phẩm thành công",
+            data: result
+        }
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
+
 const changeAccountStatus = async (req, res, next) => {
     let username = req.params.username
     let data = req.body
@@ -119,4 +133,4 @@ const changeAccountStatus = async (req, res, next) => {
     }
 }
 
-module.exports = { getImage, getProduct, getOrder, getProductList, getAllCategory, getAccount, changeAccountStatus }
+module.exports = { getImage, getProduct, getOrder, getProductList, getAllCategory, getAccount, changeAccountStatus, getAccountByUser }

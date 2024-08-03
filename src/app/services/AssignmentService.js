@@ -20,7 +20,7 @@ const assignedOrderToEmployee = (infor,data, next) =>{
                 admin: admin,
                 employee: employee,
                 order: order,
-                status: AssignmentStatus.AWAIT,
+                status: AssignmentStatus.ACCEPT,
             }).save();
 
             let account = await Account.findOne({user: employee});
@@ -84,7 +84,8 @@ const getOrderOfNewestAssignment = (userId, next) => {
             }})
             .sort({ assignedAt: -1 }) 
             .limit(1); 
-            if(assignment[0].order.status != OrderStatus.FINISH){
+
+            if(assignment.length > 0 && assignment[0].order.status != OrderStatus.FINISH){
                 resolve(assignment[0])
             } else {
                 resolve(null)
@@ -108,10 +109,10 @@ const getAssignment = (userId,assignmentId, next) => {
                 path: 'orderDetails',
                 populate: {
                     path: 'product',
-                    model: 'products' 
+                    model: 'products'
                 }
             }})
-
+            console.log(assignments)
             resolve(assignments)
            
         } catch (error) {
@@ -128,14 +129,14 @@ const getAssignment = (userId,assignmentId, next) => {
 const getListAssignment = (userId, inforQuery ,next) => {
     return new Promise( async (resolve, reject) => {
         try {
-            const assignments = await Assignment.find({ employee: userId }).populate({path:'order', populate: {
+            const assignments = await Assignment.find({ employee: userId, status: 1 }).populate({path:'order', populate: {
                 path:'orderDetails'
             }})
             .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
             .skip((inforQuery.page - 1) * inforQuery.limit)
             .limit(inforQuery.limit);
     
-            const total = await Assignment.countDocuments({ employee: userId });
+            const total = await Assignment.countDocuments({ employee: userId, status: 1 });
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
     

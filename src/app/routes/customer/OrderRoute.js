@@ -7,6 +7,6 @@ const OrderController = require('../../controllers/customer/OrderController.js')
 
 router.post('/create', AuthMiddleware.verifyTokenCustomer, OrderController.createOrder);
 
-router.get('/list', AuthMiddleware.verifyTokenCustomer, OrderController.getOrderListOfCustomer);
+router.get('/list/:status', AuthMiddleware.verifyTokenCustomer, OrderController.getOrderListOfCustomer);
 
 module.exports = router;

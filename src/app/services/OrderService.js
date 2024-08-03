@@ -14,20 +14,24 @@ const AccountStatus = require('../constants/AccountStatus.js')
 const namespace = require('../constants/NamespaseSocket.js')
 const onlineEMployees = require('../sockets/employeeOnline.js')
 
-const getOrderListOfCustomer = (customerId, inforQuery) => {
+const getOrderListOfCustomer = (customerId, inforQuery, status) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const orderList = await Order.find({ customerId: customerId })
+            console.log(status)
+            console.log(customerId)
+            const orderList = await Order.find({ customer: customerId, status: status }).populate("orderDetails")
                 .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
 
-            const total = await Order.countDocuments({ customerId: customerId });
+                console.log(orderList)
+
+            const total = await Order.countDocuments({ customer: customerId, status: status });
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
             let result = {
-                data: orderList,
+                content: orderList,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -67,12 +71,24 @@ const getOrderList = (inforQuery, status) => {
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
 
+            const assignmentList = await Assignment.find({ status: 1, order: { $in: orderList.map(order => order._id) } })
+                .populate('employee');
+
+
+            const orderListWithAssignments = orderList.map(order => {
+                const assignment = assignmentList.find(assignment => assignment.order.toString() === order._id.toString());
+                return {
+                    ...order.toObject(),
+                    assignment
+                };
+            });
+
             const total = await Order.countDocuments({ status: status });
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
 
             let result = {
-                content: orderList,
+                content: orderListWithAssignments,
                 total: total,
                 page: inforQuery.page,
                 totalPages: totalPages,
@@ -224,7 +240,7 @@ const getOrder = (orderId, next) => {
     return new Promise(async (resolve, reject) => {
         try {
             let order = await Order.findOne({ _id: orderId }).populate({path: 'orderDetails', populate: {
-                path: 'productId'
+                path: 'product'
             }});
 
             if (!order) {
@@ -292,6 +308,7 @@ const findAndAssignEmployee = async (io,order) => {
             { $sort: { timestamp: -1 } },
             { $group: { _id: "$employee", latestLocation: { $first: "$$ROOT" } } }
         ]);
+        console.log(latestLocations)
 
         // tính toán khoản cách sắp xếp gần nhất hay xa nhất
         const employeesWithDistance = latestLocations.map(emp => ({
@@ -337,6 +354,7 @@ const assignOrderToEmployee = async (io,order, employees, index = 0) => {
     const employeeSocket = onlineEMployees.get(employee.employee.toString());
     if (employeeSocket) {
         return new Promise((resolve) => {
+            let timeoutId;
 
             employeeSocket.emit('new-order-request', { 
                 orderId: order._id, 
@@ -356,11 +374,12 @@ const assignOrderToEmployee = async (io,order, employees, index = 0) => {
                 }
             });
 
-            // Đặt timeout cho phản hồi của nhân viên
-            // setTimeout(() => {
-            //     assignOrderToEmployee(order, employees, index + 1);
-            //     resolve();
-            // }, 10000); // 30 giây
+            timeoutId = setTimeout(async () => {
+                console.log(`Nhân viên ${employee.employee.toString()} không phản hồi, chuyển sang nhân viên tiếp theo.`);
+                await createAssignment(io, order._id, employee.employee, 0);
+                await assignOrderToEmployee(io, order, employees, index + 1);
+                resolve();
+            }, 30000); // 30 giây
         });
     } 
 }

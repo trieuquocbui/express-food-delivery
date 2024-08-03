@@ -8,16 +8,26 @@ const onlineEMployees = require('./employeeOnline.js')
 
 module.exports = (io) => {
     io.of(namespace.EMPLOYEE).on('connection', (socket) => {
-        // console.log("A employee connect " + socket.id);
+        console.log("A employee connect " + socket.id);
         
         let userId = null;
         let accountId = null;
 
         socket.on('employee-online', async (data) => {
-          console.log("employee-online",data)
-            accountId = data._id
-            userId = data.user._id;
+          
+            accountId = data.account._id
+            userId = data.account.user._id;
             onlineEMployees.set(userId, socket);
+
+            const location = new Location({
+              employee: data.account.userId,
+              location: {
+                type: "Point",
+                coordinates: [data.location.longitude, data.location.latitude]
+              },
+            });
+            await location.save();
+
             await Account.findByIdAndUpdate(accountId, { status: AccountStatus.ONLINE });
         })
         
@@ -43,8 +53,6 @@ module.exports = (io) => {
             await Account.findByIdAndUpdate(accountId, { status: AccountStatus.ONLINE });
           });
 
-
-    
           socket.on('disconnect', async () => {
             if (userId) {
               onlineEMployees.delete(userId)
