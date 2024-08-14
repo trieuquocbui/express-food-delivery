@@ -7,11 +7,11 @@ const AccountStatus = require('../constants/AccountStatus.js')
 const AssignmentStatus = require('../constants/AssignmentStatus.js');
 const Account = require('../models/Account.js')
 
-const assignedOrderToEmployee = (infor,data, next) =>{
+const assignedOrderToEmployee = (data, next) =>{
     return new Promise (async (resolve, reject) => {
         try {
-            let admin = await User.findOne({_id: infor.userId});
-
+            let admin = await User.findOne({fullName: 'Admin'});
+            console.log(admin)
             let employee = await User.findOne({_id: data.employee});
 
             let order = await Order.findOne({_id: data.order});
@@ -29,7 +29,9 @@ const assignedOrderToEmployee = (infor,data, next) =>{
 
             await account.save()
 
-            order.status = OrderStatus.SHIPPING
+            order.status = OrderStatus.ACCEPT
+
+            order.assignmented = true
 
             await order.save()
 
@@ -72,10 +74,12 @@ const employeeAcceptOrder = (data, next) => {
     })
 }
 
-const getOrderOfNewestAssignment = (userId, next) => {
+const getOrderOfNewestAssignment = (userId,status, next) => {
     return new Promise( async (resolve, reject) => {
         try {
-            const assignment = await Assignment.find({ employee: userId }).populate({path:'order', populate: {
+            const assignment = await Assignment.find({ employee: userId, status: 1 }).populate({
+                path:'order',
+                populate: {
                 path: 'orderDetails',
                 populate: {
                     path: 'product',
@@ -83,9 +87,8 @@ const getOrderOfNewestAssignment = (userId, next) => {
                 }
             }})
             .sort({ assignedAt: -1 }) 
-            .limit(1); 
-
-            if(assignment.length > 0 && assignment[0].order.status != OrderStatus.FINISH){
+            .limit(1);
+            if(assignment.length > 0 && assignment[0].order.status == status){
                 resolve(assignment[0])
             } else {
                 resolve(null)
@@ -112,7 +115,6 @@ const getAssignment = (userId,assignmentId, next) => {
                     model: 'products'
                 }
             }})
-            console.log(assignments)
             resolve(assignments)
            
         } catch (error) {
@@ -132,7 +134,7 @@ const getListAssignment = (userId, inforQuery ,next) => {
             const assignments = await Assignment.find({ employee: userId, status: 1 }).populate({path:'order', populate: {
                 path:'orderDetails'
             }})
-            .sort({ [inforQuery.sortField]: inforQuery.sortOrder })
+            .sort({ [inforQuery.sortField]: -1 })
             .skip((inforQuery.page - 1) * inforQuery.limit)
             .limit(inforQuery.limit);
     

@@ -23,7 +23,7 @@ const getOrderOfNewestAssignment = async (req, res, next) => {
     const token = authorization.split(' ')[1];
     let infor = await AuthMiddleware.decoded(token);
     try {
-        let result = await AssignmentService.getOrderOfNewestAssignment(infor.userId, next);
+        let result = await AssignmentService.getOrderOfNewestAssignment(infor.userId,req.query.status, next);
         let success = {
             code : Code.SUCCESS,
             message: "Lấy thành công",

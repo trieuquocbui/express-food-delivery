@@ -19,7 +19,6 @@ const getProductList = async (inforQuery) => {
                 name: { $regex: inforQuery.searchQuery, $options: 'i' }
             });
         }
-
         if (inforQuery.category) {
             let category = await Category.findOne({ _id: inforQuery.category });
             

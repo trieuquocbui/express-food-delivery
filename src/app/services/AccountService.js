@@ -280,15 +280,13 @@ const getProfile = (username, next) => {
 const editProfile = (accountId, accountInfor, next) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let account = await Account.findOne({ _id: accountId });
+            
+            let account = await Account.findOne({ _id: accountId }).populate('user');
 
             if (account) {
-
-                let user = await User.findOne({ accountId: account._id });
-
-                if (accountInfor.phoneNumber !== user.phoneNumber) {
-
-                    let checkPhone = await User.findOne({ phoneNumber: accountInfor.phoneNumber }, 'phoneNumber');
+                if (accountInfor.phoneNumber !== account.user.phoneNumber) {
+                    console.log("asd")
+                    let checkPhone = await User.findOne({ phoneNumber: accountInfor.phoneNumber });
 
                     if (checkPhone) {
                         let err = {
@@ -297,7 +295,10 @@ const editProfile = (accountId, accountInfor, next) => {
                             message: "Số điện thoại đã sử dụng",
                         }
                         return next(err);
-                    } else {
+                    } 
+                } 
+
+                let user = await User.findOne({ _id: account.user._id });
                         user.fullName = accountInfor.fullName;
                         user.phoneNumber = accountInfor.phoneNumber,
                             user.address = accountInfor.address
@@ -305,12 +306,10 @@ const editProfile = (accountId, accountInfor, next) => {
                             user.gender = accountInfor.gender
                         await user.save();
 
-                    }
-                }
+                        account = await Account.findOne({ _id: accountId }).populate('user');
 
-                let result = await getProfile(account.username, next);
+                resolve(account); 
 
-                resolve(result);
             } else {
                 let err = {
                     status: 500,

@@ -1,6 +1,23 @@
 const OrderService = require('../../services/OrderService');
 const Code = require('../../constants/CodeConstant.js');
 
+const getStatistics = async (req, res, next) => {
+    let startDate = req.query.startDate
+    let endDate = req.query.endDate
+    console.log(startDate)
+    console.log(endDate)
+    try {
+        let result = await OrderService.getStatistics(startDate, endDate);
+        let success = {
+            code: Code.SUCCESS,
+            message: "Lấy danh sách đơn hàng thành công",
+            data: result
+        }
+        res.send(success);
+    } catch (error) {
+        next(error);
+    }
+}
 
 const getOrderList = async (req, res, next) => {
     let status = parseInt(req.params.status);
@@ -47,4 +64,4 @@ const getOrder = async (req, res, next) => {
     }
 }
 
-module.exports = { getOrderList, getOrder }
+module.exports = { getOrderList, getOrder, getStatistics }

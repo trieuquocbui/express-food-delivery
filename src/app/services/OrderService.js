@@ -24,8 +24,6 @@ const getOrderListOfCustomer = (customerId, inforQuery, status) => {
                 .skip((inforQuery.page - 1) * inforQuery.limit)
                 .limit(inforQuery.limit);
 
-                console.log(orderList)
-
             const total = await Order.countDocuments({ customer: customerId, status: status });
             const totalPages = Math.ceil(total / inforQuery.limit);
             const isLastPage = inforQuery.page >= totalPages;
@@ -297,7 +295,7 @@ const editOrderStatus = (io, orderId, data,next) => {
 
 const findAndAssignEmployee = async (io,order) => {
     try {
-        // lấy danh sách nhân viên
+        // lấy danh sách nhân viên online
         const role = await Role.findOne({ name: RoleConstant[1] });
         const accounts = await Account.find({ role: role, status: AccountStatus.ONLINE }).populate('user');
         const onlineEmployeeIds = accounts.map(item => item.user._id);
@@ -305,16 +303,16 @@ const findAndAssignEmployee = async (io,order) => {
         // lấy location mới nhất của nhân viên onl
         const latestLocations = await Location.aggregate([
             { $match: { employee: { $in: onlineEmployeeIds.map(id => id) } } },
-            { $sort: { timestamp: -1 } },
+            { $sort: { _id: -1 } },
             { $group: { _id: "$employee", latestLocation: { $first: "$$ROOT" } } }
         ]);
-        console.log(latestLocations)
 
         // tính toán khoản cách sắp xếp gần nhất hay xa nhất
         const employeesWithDistance = latestLocations.map(emp => ({
             employee: emp._id,
             distance: calculateDistance(order.location.coordinates, emp.latestLocation.location.coordinates)
         })).sort((a, b) => a.distance - b.distance);
+        console.log(employeesWithDistance)
 
         await assignOrderToEmployee(io,order, employeesWithDistance);
     } catch (error) {
@@ -345,7 +343,6 @@ const  calculateDistance = (coord1, coord2) => {
 
 const assignOrderToEmployee = async (io,order, employees, index = 0) => {
     if (index >= employees.length) {
-        console.log("Đơn hàng chưa phân công")
         await Order.findByIdAndUpdate(order._id, { assignmented: 0 });
         io.of(namespace.ADMIN).emit('order-unassigned', "Đơn hàng chưa phân công");
         return;
@@ -354,12 +351,12 @@ const assignOrderToEmployee = async (io,order, employees, index = 0) => {
     const employeeSocket = onlineEMployees.get(employee.employee.toString());
     if (employeeSocket) {
         return new Promise((resolve) => {
-            let timeoutId;
 
             employeeSocket.emit('new-order-request', { 
                 orderId: order._id, 
                 distance: employee.distance
             }, async (response, err) => {
+                clearTimeout(timeoutId);
                 if (err) {
                     console.error("Error:", err);
                 }
@@ -395,10 +392,47 @@ const  createAssignment = async (io,orderId, employeeId, status) => {
     await assignment.save();
 
     if(status == 1){
-        console.log("Đơn đã phân công")
         await Order.findByIdAndUpdate(orderId, { assignmented: 1 });
         io.of(namespace.ADMIN).emit('order-assigned', "Đơn đã phân công");
     }
 }
 
-module.exports = { getOrderListOfCustomer, getOrderList, createOrder, deleteOrder, getOrder, editOrderStatus };
+const getStatistics = async (startDate, endDate) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const orders = await Order.find({
+                status: 3,
+              createdAt: {
+                $gte: new Date(startDate),  
+                $lte: new Date(endDate)     
+              }
+            }).populate('customer').populate({path: 'orderDetails', populate: {
+                path: 'product'
+            }});
+
+            const assignmentList = await Assignment.find({ status: 1, order: { $in: orders.map(order => order._id) } })
+                .populate('employee');
+
+
+            const orderListWithAssignments = orders.map(order => {
+                const assignment = assignmentList.find(assignment => assignment.order.toString() === order._id.toString());
+                return {
+                    ...order.toObject(),
+                    assignment
+                };
+            });
+
+            resolve(orderListWithAssignments);
+          } catch (error) {
+            console.error(`Lỗi xảy ra trong quá trình lấy danh sách đơn hàng:`, error);
+                let err = {
+                    status: 500,
+                    message: "Lỗi xảy ra trong quá trình lấy danh sách đơn hàng!",
+                    code: Code.ERROR
+                };
+            reject(err);
+          }
+    })
+}
+
+module.exports = { getOrderListOfCustomer, getOrderList, createOrder, deleteOrder, getOrder, editOrderStatus, getStatistics };

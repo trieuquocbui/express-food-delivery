@@ -14,7 +14,6 @@ module.exports = (io) => {
         let accountId = null;
 
         socket.on('employee-online', async (data) => {
-          
             accountId = data.account._id
             userId = data.account.user._id;
             onlineEMployees.set(userId, socket);
@@ -44,7 +43,6 @@ module.exports = (io) => {
             }
           });
 
-
           socket.on('shipping-account', async (data) => {
             await Account.findByIdAndUpdate(accountId, { status: AccountStatus.SHIPPING });
           });
@@ -54,6 +52,7 @@ module.exports = (io) => {
           });
 
           socket.on('disconnect', async () => {
+            console.log(1)
             if (userId) {
               onlineEMployees.delete(userId)
               await Account.findByIdAndUpdate(accountId, { status: AccountStatus.OFFLINE });
